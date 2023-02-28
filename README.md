@@ -27,7 +27,9 @@ To test with your own point cloud in LAS format:
 * Set Configuration to "Release". 
 * Compile and run
 * Hope it works. Check console that loading does work - It will print a message every 10M points that are loaded from disk.
-* After the point cloud is loaded, LOD will be constructed with the first-come strategy. You can then try different sampling strategies using the buttons in the UI.
+* After the point cloud is loaded, LOD will be constructed with the first-come strategy. You can then try different sampling strategies and adjust LOD in the GUI.
+
+<img src="docs/gui.jpg">
 
 ## Implementation
 
