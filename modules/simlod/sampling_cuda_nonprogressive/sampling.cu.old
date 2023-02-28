@@ -1,0 +1,194 @@
+
+// void projectNearest(State* state, Point* input_points, SampleGrid sampleGrid, int gridSize, vec3 size){
+
+// 	// if(isFirstThread()){
+// 	// 	printf("gridSize: %i\n", gridSize);
+// 	// }
+
+// 	uint32_t totalThreadCount = blockDim.x * gridDim.x;
+
+// 	float fGridSize = float(gridSize);
+// 	// unsigned long long int* sampleGrid_u64 = reinterpret_cast<unsigned long long int*>(sampleGrid.values);
+
+// 	// unsigned long long int RG = 0;
+// 	// unsigned long long int BC = 0;
+// 	// uint32_t* ptr_rg = reinterpret_cast<uint32_t*>(&RG);
+// 	// uint32_t* ptr_bc = reinterpret_cast<uint32_t*>(&BC);
+// 	// ptr_bc[1] = 1;
+
+// 	int pointsPerThread = state->metadata.numPoints / totalThreadCount;
+// 	for(int i = 0; i < pointsPerThread; i++){
+// 		// int globalIndex = threadIdx.x + blockIdx.x * blockDim.x;
+// 		// int pointIndex = globalIndex * pointsPerThread + i;
+
+// 		int firstInBlock = blockIdx.x * blockDim.x * pointsPerThread;
+// 		int pointIndex = firstInBlock + i * blockDim.x + threadIdx.x;
+
+
+// 		Point point = input_points[pointIndex];
+
+// 		float vx = fGridSize * (point.x / size.x);
+// 		float vy = fGridSize * (point.y / size.y);
+// 		float vz = fGridSize * (point.z / size.z);
+
+// 		int ix = int(fminf(vx, fGridSize - 1.0));
+// 		int iy = int(fminf(vy, fGridSize - 1.0));
+// 		int iz = int(fminf(vz, fGridSize - 1.0));
+
+// 		int voxelIndex = ix + iy * gridSize + iz * gridSize * gridSize;
+
+// 		{
+// 			// uint32_t fullMask = 0xffffffff;
+// 			// uint32_t sameMask = __match_any_sync(fullMask, voxelIndex);
+
+// 			// uint32_t R = (point.color >>  0) & 0xFF;
+// 			// // only supported starting with compute capability 8 :(
+// 			// __reduce_add_sync(sameMask, R);
+
+// 			// if(blockIdx.x == 0 && threadIdx.x == 0 && i == 0){
+// 			// 	printf("sameMask: %u\n", sameMask);
+// 			// 	// printf("voxelIndex: %u\n", voxelIndex);
+// 			// 	// printf("blockDim.x%u\n", uint32_t(blockDim.x));
+// 			// }
+// 		}
+
+// 		{
+// 			atomicAdd(&sampleGrid.values[4 * voxelIndex + 0], (point.color >>  0) & 0xFF);
+// 			atomicAdd(&sampleGrid.values[4 * voxelIndex + 1], (point.color >>  8) & 0xFF);
+// 			atomicAdd(&sampleGrid.values[4 * voxelIndex + 2], (point.color >> 16) & 0xFF);
+// 			atomicAdd(&sampleGrid.values[4 * voxelIndex + 3], 1);
+// 		}
+// 	}
+
+// }
+
+// void projectLinear(State* state, Point* input_points, SampleGrid sampleGrid, int gridSize, vec3 size){
+// 	uint32_t totalThreadCount = blockDim.x * gridDim.x;
+
+// 	float fGridSize = float(gridSize);
+
+// 	int pointsPerThread = state->metadata.numPoints / totalThreadCount;
+// 	for(int i = 0; i < pointsPerThread; i++){
+
+// 		int globalIndex = threadIdx.x + blockIdx.x * blockDim.x;
+// 		int pointIndex = globalIndex * pointsPerThread + i;
+// 		Point point = input_points[pointIndex];
+
+// 		float vx = fGridSize * (point.x / size.x);
+// 		float vy = fGridSize * (point.y / size.y);
+// 		float vz = fGridSize * (point.z / size.z);
+
+// 		int ix = int(fminf(vx, fGridSize - 1.0));
+// 		int iy = int(fminf(vy, fGridSize - 1.0));
+// 		int iz = int(fminf(vz, fGridSize - 1.0));
+
+// 		for(int ox = ix - 1; ox <= ix + 1; ox++)
+// 		for(int oy = iy - 1; oy <= iy + 1; oy++)
+// 		for(int oz = iz - 1; oz <= iz + 1; oz++)
+// 		{
+// 			if(ox < 0 || ox >= gridSize) continue;
+// 			if(oy < 0 || oy >= gridSize) continue;
+// 			if(oz < 0 || oz >= gridSize) continue;
+
+// 			float vc_x = float(ox) + 0.5;
+// 			float vc_y = float(oy) + 0.5;
+// 			float vc_z = float(oz) + 0.5;
+
+// 			float dx = (vx - vc_x);
+// 			float dy = (vy - vc_y);
+// 			float dz = (vz - vc_z);
+
+// 			float d = vec3(dx, dy, dz).length();
+// 			float w = clamp(1.0 - d, 0.0, 1.0);
+
+// 			if(w > 0.0){
+// 				int voxelIndex = ox + oy * gridSize + oz * gridSize * gridSize;
+				
+// 				int W = int(w * 255.0);
+				
+// 				atomicAdd(&sampleGrid.values[4 * voxelIndex + 0], W * ((point.color >>  0) & 0xFF));
+// 				atomicAdd(&sampleGrid.values[4 * voxelIndex + 1], W * ((point.color >>  8) & 0xFF));
+// 				atomicAdd(&sampleGrid.values[4 * voxelIndex + 2], W * ((point.color >> 16) & 0xFF));
+// 				atomicAdd(&sampleGrid.values[4 * voxelIndex + 3], W);
+// 			}
+			
+// 			// int voxelIndex = ix + iy * gridSize + iz * gridSize * gridSize;
+
+// 			// sampleGrid.values[4 * voxelIndex + 0] += (point.color >>  0) & 0xFF;
+// 			// sampleGrid.values[4 * voxelIndex + 1] += (point.color >>  8) & 0xFF;
+// 			// sampleGrid.values[4 * voxelIndex + 2] += (point.color >> 16) & 0xFF;
+// 			// sampleGrid.values[4 * voxelIndex + 3] += 1;
+
+// 		}
+
+// 	}
+
+// }
+
+// void extractVoxels(State* state, Point* input_points, Points* points, Lines* lines, Triangles* triangles, SampleGrid sampleGrid, int gridSize, vec3 size){
+
+// 	uint32_t totalThreadCount = blockDim.x * gridDim.x;
+// 	float fGridSize = float(gridSize);
+// 	int numVoxels = gridSize * gridSize * gridSize;
+// 	int voxelsPerThread = numVoxels / totalThreadCount;
+
+// 	for(int i = 0; i < voxelsPerThread; i++){
+// 		int globalIndex = threadIdx.x + blockIdx.x * blockDim.x;
+// 		int voxelIndex = globalIndex * voxelsPerThread + i;
+
+// 		int ix = voxelIndex % gridSize;
+// 		int iz = voxelIndex / (gridSize * gridSize);
+// 		int iy = (voxelIndex % (gridSize * gridSize)) / gridSize;
+
+// 		float x = (float(ix) / fGridSize) * size.x + 0.5 * size.x / fGridSize;
+// 		float y = (float(iy) / fGridSize) * size.y + 0.5 * size.y / fGridSize;
+// 		float z = (float(iz) / fGridSize) * size.z + 0.5 * size.z / fGridSize;
+
+// 		int R = sampleGrid.values[4 * voxelIndex + 0];
+// 		int G = sampleGrid.values[4 * voxelIndex + 1];
+// 		int B = sampleGrid.values[4 * voxelIndex + 2];
+// 		int count = sampleGrid.values[4 * voxelIndex + 3];
+
+// 		// unsigned short* ptr = reinterpret_cast<unsigned short*>(&sampleGrid.values[2 * voxelIndex]);
+// 		// int R = ptr[0];
+// 		// int G = ptr[1];
+// 		// int B = ptr[2];
+// 		// int count = ptr[3];
+
+// 		// float r = float(R / count) / 256.0;
+// 		// float g = float(G / count) / 256.0;
+// 		// float b = float(B / count) / 256.0;
+
+// 		uint32_t color = 0
+// 			| (R / count) <<  0
+// 			| (G / count) <<  8
+// 			| (B / count) << 16
+// 			| POINT_SIZE << 24;
+
+// 		float factor = log2f(fGridSize);
+
+// 		int threshold = 0;
+// 		#if SAMPLING_METHOD == SAMPLING_METHOD_NEAREST
+// 			threshold = 20;
+// 		#elif SAMPLING_METHOD == SAMPLING_METHOD_LINEAR
+// 			threshold = 20 * powf(2, factor);
+// 		#endif
+
+// 		// if(count > 10)
+// 		if(count > threshold)
+// 		{
+// 			// drawPoint(points, vec3(x, y, z), color);
+			
+// 			float voxelSize = size.x / fGridSize;
+// 			// float offset = state->guiItems[1].value;
+// 			drawBox(triangles, vec3(x, y, z), vec3(voxelSize, voxelSize, voxelSize), color);
+// 			// atomicAdd(&state->debug, 1);
+// 		}
+
+// 	}
+
+// 	if(blockIdx.x == 0 && threadIdx.x == 0){
+// 		printf("debug: %d\n", voxelsPerThread);
+// 	}
+
+// }

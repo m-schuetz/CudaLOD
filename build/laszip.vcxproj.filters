@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\arithmeticdecoder.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\arithmeticencoder.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\arithmeticmodel.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\integercompressor.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasindex.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasinterval.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasquadtree.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v1.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v2.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v3.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v4.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasreadpoint.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\lasunzipper.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v1.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v2.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v3.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v4.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laswritepoint.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laszip.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laszip_dll.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\laszipper.cpp" />
+    <ClCompile Include="$(SolutionDir)..\libs\laszip\src\mydefs.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\arithmeticdecoder.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\arithmeticencoder.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\arithmeticmodel.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamin.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamin_array.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamin_file.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamin_istream.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreaminout.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreaminout_file.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamout.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamout_array.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamout_file.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamout_nil.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\bytestreamout_ostream.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\endian.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\integercompressor.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasattributer.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasindex.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasinterval.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laspoint.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasquadtree.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasquantizer.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditem.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v1.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v2.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v3.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditemcompressed_v4.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreaditemraw.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasreadpoint.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\lasunzipper.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitem.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v1.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v2.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v3.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitemcompressed_v4.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswriteitemraw.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laswritepoint.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszip.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszip_common_v1.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszip_common_v2.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszip_common_v3.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszip_decompress_selective_v3.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\laszipper.hpp" />
+    <ClInclude Include="$(SolutionDir)..\libs\laszip\src\mydefs.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{A525AD03-DF1D-3DA0-9B3D-ACFFDAEB7A07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{A64DCB35-0E11-3333-9B3E-001D80484A38}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,4 @@
+
+struct CudaProgramSettings{
+	int test;
+};

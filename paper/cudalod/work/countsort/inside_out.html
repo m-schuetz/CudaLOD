@@ -1,0 +1,196 @@
+
+<!-- <head>
+	<title>Page Title</title>
+	<meta http-equiv="refresh" content="1">
+</head> -->
+<body>
+
+    <script type="module">
+    
+    import {svgns, createDisplay, createTestData, shuffle, createCircle, show, distance} from "./utils.js";
+    
+    
+    let boxSize = 200;
+    let maxLevel = 4;
+    let gridSize = 2 ** maxLevel;
+    let n = 1000;
+    
+    
+    
+    // create in morton order
+    let pointclouds = createTestData(n, boxSize, gridSize, maxLevel);
+    
+    
+    
+
+
+    function downsample(pointcloud, spacing, size){
+
+        let {points, min, max, center} = pointcloud;
+
+        points.sort((a, b) => {
+            let da = distance(a, center);
+            let db = distance(b, center);
+
+            return da - db;
+        });
+
+        let accepted = [];
+        let rejected = [];
+
+        function checkAccept(candidate){
+
+            for(let a of accepted){
+                let d = distance(a, candidate);
+
+				let dc = distance(a, center)
+				let spacing = 2 + dc / 8;
+				
+                if(d < spacing){
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        for(let candidate of points){
+
+            let isAccepted = checkAccept(candidate);
+
+            if(isAccepted){
+                accepted.push(candidate);
+            }else{
+                rejected.push(candidate);
+            }
+
+        }
+
+        // console.log("#accepted: ", accepted.length)
+
+        let pcAccepted = {
+            min: pointcloud.min,
+            max: pointcloud.max,
+            center: pointcloud.center,
+            points: accepted,
+        };
+
+        let pcRejected = {
+            min: pointcloud.min,
+            max: pointcloud.max,
+            center: pointcloud.center,
+            points: rejected,
+        };
+
+        return {
+            accepted: pcAccepted,
+            rejected: pcRejected,
+        };
+    }
+
+    
+    
+    
+    
+    function run(spacing, source, targetAccepted, targetRejected){
+    
+        let min = [
+            Math.min(...source.map(d => d.min[0])),
+            Math.min(...source.map(d => d.min[1])),
+        ];
+        let max = [
+            Math.max(...source.map(d => d.max[0])),
+            Math.max(...source.map(d => d.max[1])),
+        ];
+    
+        let center = [
+            (min[0] + max[0]) / 2,
+            (min[1] + max[1]) / 2,
+        ]
+    
+        let toSample = {
+            points: source.map(d => d.points).flat(),
+            min: min,
+            max: max,
+            center: center, 
+        };
+    
+        let downsamples = downsample(toSample, spacing);
+    
+        let accepted = {
+            points: downsamples.accepted.points,
+            min: min,
+            max: max,
+            center: center,  
+        };
+    
+        let rejected = {
+            points: downsamples.rejected.points,
+            min: min,
+            max: max,
+            center: center,  
+        };
+    
+        targetAccepted.push(accepted);
+        targetRejected.push(rejected);
+    };
+    
+    
+    
+    function doSampling(pointcloud, level){
+    
+
+		let tiles = 1;
+    
+        let accepteds = [];
+        let rejecteds = [];
+    
+        let spacing = 10.0;
+    
+        run(spacing, pointcloud, accepteds, rejecteds);
+        
+    
+        let display = createDisplay(boxSize);
+    
+        let numPoints = 0;
+        let pointsize = spacing * 0.2;
+        for(let accepted of accepteds){
+            show(accepted, pointsize, display.svg);
+    
+            numPoints += accepted.points.length;
+        }
+    
+        display.label.innerHTML = `#${numPoints}`;
+    
+        return accepteds;
+    }
+    
+
+	let min = [0, 0];
+	let max = [200, 200];
+	let center = [100, 100];
+	let points = [];
+	for(let i = 0; i < 20_000; i++){
+
+		let u = Math.random();
+		let v = Math.random();
+
+		let dd = (2 * u - 1) ** 2 + (2 * v - 1) ** 2;
+		
+		if(dd > 1) continue;
+
+
+		let x = u * max[0];
+		let y = v * max[1];
+
+		points.push([x, y]);
+	}
+	let pointcloud = [{points, min, max, center}];
+
+    let sampled = doSampling(pointcloud, 1);
+
+    
+    
+    </script>
+    
+    </body>
