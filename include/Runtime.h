@@ -37,6 +37,7 @@ struct Runtime{
 	inline static vector<GuiItem> guiItems;
 	inline static int samplingStrategy = 0;
 	inline static bool requestLodGeneration = false;
+	inline static float LOD = 0.95f;
 
 
 	Runtime(){

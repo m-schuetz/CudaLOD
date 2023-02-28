@@ -169,6 +169,7 @@ struct VoxelTreeGen{
 			state.imageSize = int2{ fbo->width, fbo->height };
 
 			state.strategy = static_cast<SamplingStrategy>(Runtime::samplingStrategy);
+			state.LOD = Runtime::LOD;
 		}
 
 		void* args[] = {
@@ -566,6 +567,7 @@ struct VoxelTreeGen{
 				Mat4 transform;
 				int2 imageSize;
 				int numPoints;
+				float LOD;
 			};
 
 			auto fbo = renderer->views[0].framebuffer;
@@ -573,6 +575,7 @@ struct VoxelTreeGen{
 			*((glm::mat4*)&rpArgs.transform) = glm::transpose(worldViewProj);
 			rpArgs.imageSize = int2{ fbo->width, fbo->height };
 			rpArgs.numPoints = lasfile->points.size();
+			rpArgs.LOD = Runtime::LOD;
 
 			void* args[] = {
 				&rpArgs, &output_surface,

@@ -27,6 +27,7 @@ struct State{
 	Mat4 transform;
 	int2 imageSize;
 	SamplingStrategy strategy;
+	float LOD;
 };
 
 constexpr int HISTOGRAM_NUM_BINS = 100;

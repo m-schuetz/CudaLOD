@@ -565,44 +565,10 @@ void Renderer::loop(function<void(void)> update, function<void(void)> render){
 				Runtime::requestLodGeneration = true;
 			}
 			
-			//if (ImGui::Button("toggle update")){
-			//	Debug::updateEnabled = !Debug::updateEnabled;
-			//}
+			static float LOD = 0.9f;
+			ImGui::SliderFloat("Level of Detail", &LOD, 0.0f, 1.0f, "ratio = %.3f");
 
-			// {
-			// 	static bool checked = Debug::updateEnabled; 
-			// 	ImGui::Checkbox("update", &checked);
-
-			// 	Debug::updateEnabled = checked;
-			// }
-
-			// {
-			// 	static bool checked = Debug::showBoundingBox; 
-			// 	ImGui::Checkbox("show bounding box", &checked);
-
-			// 	Debug::showBoundingBox = checked;
-			// }
-
-			// {
-			// 	static bool checked = Debug::colorizeChunks; 
-			// 	ImGui::Checkbox("colorize chunks", &checked);
-
-			// 	Debug::colorizeChunks = checked;
-			// }
-
-			// {
-			// 	static bool checked = Debug::colorizeOverdraw; 
-			// 	ImGui::Checkbox("colorize overdraw", &checked);
-
-			// 	Debug::colorizeOverdraw = checked;
-			// }
-
-			// {
-			// 	static bool checked = Debug::boolMisc; 
-			// 	ImGui::Checkbox("misc", &checked);
-
-			// 	Debug::boolMisc = checked;
-			// }
+			Runtime::LOD = LOD;
 
 			if (ImGui::Button("copy camera")) {
 				auto pos = controls->getPosition();

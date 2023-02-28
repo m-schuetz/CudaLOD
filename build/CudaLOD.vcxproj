@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{6E98D902-2BE0-4AB8-97B8-1EBD66E95CA5}</ProjectGuid>
-    <RootNamespace>ComputeRasterizer</RootNamespace>
+    <RootNamespace>CudaLOD</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

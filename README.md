@@ -1,51 +1,61 @@
 
 # CUDA LOD Generation
 
-## About
+This repository contains the source to our paper ["GPU-Accelerated LOD Generation for Point Clouds"](https://www.cg.tuwien.ac.at/research/publications/2023/SCHUETZ-2023-LOD/SCHUETZ-2023-LOD-paper.pdf). 
 
-This app generates a hierarchical LOD structure from your point cloud in CUDA. 
+__About__: We introduce a GPU-accelerated LOD construction process that creates a hybrid voxel-point-based variation of the widely used layered point cloud (LPC) structure for LOD rendering and streaming. The massive performance improvements provided by the GPU allow us to improve the quality of lower LODs via color filtering while still increasing construction speed compared to the non-filtered, CPU-based state of the art.#
 
+__Background__: LOD structures are required to render hundreds of millions to trillions of points, but constructing them takes time.
 
-## Test Data
+__Results__: LOD structures suitable for rendering and streaming are constructed at rates of about 1 billion points per second (with color filtering) to 4 billion points per second (sample-picking/random sampling, state of the art) on an RTX 3090 -- an improvement of a factor of 80 to 400 times over the CPU-based state of the art (12 million points per second). Due to being in-core, model sizes are limited to about 500 million points per 24GB memory.
 
-Do not share, only for internal use.
+__Discussion__: Our method currently focuses on maximizing in-core construction speed on the GPU. Issues such as out-of-core construction of arbitrarily large data sets are not addressed, but we expect it to be suitable as a component of bottom-up out-of-core LOD construction schemes.
 
-* [Saint Roman, 547M points](http://5.9.65.151/mschuetz/temporary/SaintRoman_cleaned_1094M_202003_halved.las)
-* [CA21 Bunds, 975M points](http://5.9.65.151/mschuetz/temporary/CA21_bunds_9_to_14.las)
+<img src="docs/cudalod_cover.jpg">
 
 ## Getting started
 
-* Change path to point cloud in main_simlod.h
-	* Look for ```// PICK POINT CLOUD TO PROCESS``` and pick the config you want
-	* Make sure the config paths are correct. Defined in same file above.
-* Check ```sampling_cuda_nonprogressive.h``` whether  ```#define MAX_BUFFER_SIZE``` fits your GPU and point cloud. 15GB works for 547M points. 30GB for 975M points? Note that this does not include the input data which requires another 16 * _numPoints_ bytes of GPU memory.
+To test with your own point cloud in LAS format:
+
+* Change path to point cloud in [main_simlod.h](https://github.com/m-schuetz/CudaLOD/blob/main/src/main_simlod.h#L240-L258)
+	* Look for ```// WHATEVER``` and modify the path.
+* Modify ```#define MAX_BUFFER_SIZE 15'000'000'000``` in [sampling_cuda_nonprogressive.h](https://github.com/m-schuetz/CudaLOD/blob/0af1bb1dc46db9c59d184ba2f210ec3bf775f13e/modules/simlod/sampling_cuda_nonprogressive/sampling_cuda_nonprogressive.h#L50) to a value that fits your GPU and point cloud. 
+	* ```MAX_BUFFER_SIZE``` needs to be about 28 * numPoints bytes. This buffer holds intermediate data such as the partitioned/sorted point cloud, and the output data, i.e., the octree and voxels.
+	* ```MAX_BUFFER_SIZE``` must be at most 2/3 of your total GPU memory. Because CudaLOD needs at least 16 * numPoints additional memory for another buffer with the input data.
+* Set Configuration to "Release". 
 * Compile and run
-* Hope it works. Check console that loading does work, prints message every 10M points.
-* Try different splitting and voxelization methods in ```kernel.cu```
-	* Change split: Go to  ```// PICK SPLIT METHOD``` and uncomment the desired one
-	* Change voxelization: Go to ```// PICK VOXELIZATION METHOD``` and pick desired one
+* Hope it works. Check console that loading does work - It will print a message every 10M points that are loaded from disk.
+* After the point cloud is loaded, LOD will be constructed with the first-come strategy. You can then try different sampling strategies using the buttons in the UI.
 
-The kernels compute and print some stats, which affects performance. Stat printing can be deactivated in ```kernel.cu``` by setting ```PRINT_STATS``` to false. 
-
-## Infos - Software Architecture
+## Implementation
 
 * The relevant code is in modules/simlod/sampling_cuda_nonprogressive
-* CUDA code for LOD generation: ```kernel.cu```, ```countsorth.h.cu```. Most of it in ```countsorth.h.cu```. Recompilation at runtime is triggered by saving ```kernel.cu```
-* CUDA code for rendering: ```render.cu```. Changes are immediately applied by saving this file. 
+* CUDA code for LOD generation: 
+	* ```kernel.cu```, 
+	* ```split_countsort_blockwise.h.cu```
+	* All the ```voxelize_<xxx>_blockwise.cu```
+* CUDA code for point cloud rendering: ```render.cu```. Changes are immediately applied by saving this file. 
 * Host-code is in ```sampling_cuda_nonprogressive.h```
 
-## Infos - Algorithm
+## Algorithm Overview
 
-This app generates an LOD structure that is largely identical to Potree, but instead of points, lower LODs are filled with voxels. These voxels hold filtered color values that are representative of the voxels or points at higher levels of detail. The leaf nodes contain the original point data and no voxels.
+<img src="paper\cudalod\work\overview\overview.png">
 
-* __kernel2__: Distribute points into an octree where each leaf node has at most 100k points
-	* Create a 256³ (8 octree levels) counting grid and count the number of points in each cell
-	* Recursively merge cells with <100k points.
-	* Cells with > points are now leaf nodes of the octree. Some leaf nodes may be at level 8, while others may be at lower levels if counter cells were merged.
-	* 256³ (8 levels) may not be sufficient to ensure that all leaf nodes have <100k points. All nodes that still have more than 100k point are then split again, but this time with a smaller counting grid, e.g. 16³ (4 levels). 
-* __kernel3__: Populate currently empty lower levels of detail with voxels
-	* Find all nodes with non-empty children (contain either voxels or points)
-	* One node at a time, project points and voxels from their 8 direct child nodes into a voxel sampling grid. Each child point or voxel contributes its color values to all surrounding voxels of the sample grid, depending on their distance. 
-	* We then iterate over the voxel sampling grid and extract the generated voxels from the voxel sampling grid. Voxels that do not contain a child point or voxel are ignored, even if child points or voxels contributed a color value due to their proximity. 
+This method first splits the point cloud into leaf nodes of an octree via hierarchical counting sort, and then populates inner nodes with coarser voxelized representations of their children. Hierarchical counting sort allows splitting points into an octree with 8 levels in just two iterations over all points, and one additional iteration over points for any additional 4 octree levels. A depth of 12 suffices for all our test data sets with up to 1 billion points. 
 
-That's it. Rendering is done in ```render.cu```. The rendering is not yet optimized for speed. Each voxel/point is rendered to a single pixel. A screen-pass then iterates over all pixels, looks at surrounding pixels, and computes the color value based on the depth value, as well as weighted distances of each color. All of that is a quick hack and could probably be improved to get the right amount of sharpness vs. blurriness.
+## Citation
+
+Paper: ["GPU-Accelerated LOD Generation for Point Clouds"](https://www.cg.tuwien.ac.at/research/publications/2023/SCHUETZ-2023-LOD/SCHUETZ-2023-LOD-paper.pdf)
+
+Bibtex:
+```
+@misc{SCHUETZ-2023-LOD,
+	title =      "GPU-Accelerated LOD Generation for Point Clouds",
+	author =     "Markus Schütz and Bernhard Kerbl and Philip Klaus and
+				Michael Wimmer",
+	year =       "2023",
+	month =      feb,
+	keywords =   "point cloud rendering, level of detail, LOD",
+	URL =        "https://www.cg.tuwien.ac.at/research/publications/2023/SCHUETZ-2023-LOD/",
+}
+```

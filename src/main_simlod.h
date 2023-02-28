@@ -254,7 +254,7 @@ int main(){
 	// Setting setting = settings["SaintRoman_2"];
 	// Setting setting = settings["lion"];
 	// Setting setting = settings["Palmyra_BelTemple_0"];
-	// Setting setting = settings["retz"];
+	// Setting setting = settings["SaintRoman_2"];
 	Setting setting = settings["whatever"];
 
 	if(setting.radius == 0.0)

@@ -16,8 +16,8 @@
 
 namespace cg = cooperative_groups;
 
-constexpr int splatRadius = 0;
-constexpr float LOD_FACTOR = 0.08;
+constexpr int splatRadius = 1;
+// constexpr float LOD_FACTOR = 0.08;
 constexpr float DEFAULT_DEPTH = 100000000000.0;
 
 constexpr bool SHOW_BOUNDING_BOXES = false;
@@ -249,6 +249,7 @@ struct RenderPassArgs{
 	Mat4 transform;
 	int2 imageSize;
 	int numPoints;
+	float LOD;
 };
 
 void drawLines(Point* vertices, int numLines, uint32_t* rt_depth, uint32_t* rt_color, RenderPassArgs& args){
@@ -1466,7 +1467,12 @@ void kernel(
 		if(distance < 0.1){
 			distance = 0.1;
 		}
-		if(node->cubeSize / distance < LOD_FACTOR){
+
+		// 0.5, 5.0
+
+		float lod_factor = 1.0f - 0.97f * args.LOD;
+
+		if(node->cubeSize / distance < lod_factor){
 			visible = false;
 		}
 
