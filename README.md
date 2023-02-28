@@ -20,7 +20,9 @@ To test with your own point cloud in LAS format:
 * Change path to point cloud in [main_simlod.h](https://github.com/m-schuetz/CudaLOD/blob/main/src/main_simlod.h#L240-L258)
 	* Look for ```// WHATEVER``` and modify the path.
 * Modify ```#define MAX_BUFFER_SIZE 15'000'000'000``` in [sampling_cuda_nonprogressive.h](https://github.com/m-schuetz/CudaLOD/blob/0af1bb1dc46db9c59d184ba2f210ec3bf775f13e/modules/simlod/sampling_cuda_nonprogressive/sampling_cuda_nonprogressive.h#L50) to a value that fits your GPU and point cloud. 
-	* ```MAX_BUFFER_SIZE``` needs to be about 28 * numPoints bytes. This buffer holds intermediate data such as the partitioned/sorted point cloud, and the output data, i.e., the octree and voxels.
+	* ```MAX_BUFFER_SIZE``` needs to be about 28 * numPoints bytes. This buffer holds intermediate data such as the partitioned/sorted point cloud, and the output data, i.e., the octree and voxels. Actual required values depend on the amount of generated voxels, but these values worked for us:
+		* 550 million points and high depth complexity: MAX_BUFFER_SIZE = 15GB; total GPU memory at least 24GB
+		* 1 billion points and 2.5D LIDAR data: MAX_BUFFER_SIZE = 25GB; total GPU memory at least 48GB
 	* ```MAX_BUFFER_SIZE``` must be at most 2/3 of your total GPU memory. Because CudaLOD needs at least 16 * numPoints additional memory for another buffer with the input data.
 * Set Configuration to "Release". 
 * Compile and run
