@@ -55,8 +55,7 @@ Bibtex:
 ```
 @misc{SCHUETZ-2023-LOD,
 	title =      "GPU-Accelerated LOD Generation for Point Clouds",
-	author =     "Markus Schütz and Bernhard Kerbl and Philip Klaus and
-				Michael Wimmer",
+	author =     "Markus Schütz and Bernhard Kerbl and Philip Klaus and Michael Wimmer",
 	year =       "2023",
 	month =      feb,
 	keywords =   "point cloud rendering, level of detail, LOD",
