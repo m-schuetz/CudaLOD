@@ -58,6 +58,49 @@ Please note following limitations:
 
 This method first splits the point cloud into leaf nodes of an octree via hierarchical counting sort, and then populates inner nodes with coarser voxelized representations of their children. Hierarchical counting sort allows splitting points into an octree with 8 levels in just two iterations over all points, and one additional iteration over points for any additional 4 octree levels. A depth of 12 suffices for all our test data sets with up to 1 billion points. 
 
+
+## Results
+
+<table>
+	<tr>
+		<th>Retz</th>
+		<th>Palmyra</th>
+		<th>Saint Roman</th>
+		<th>CA21 Bunds</th>
+	</tr>
+	<tr>
+		<td>
+			<img src="paper/cudalod/images/datasets/retz_0.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/Palmyra_BelTemple0.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/SaintRoman_0.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/desert_far.png">
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<img src="paper/cudalod/images/datasets/retz_1.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/Palmyra_BelTemple1.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/SaintRoman_1.jpg">
+		</td>
+		<td>
+			<img src="paper/cudalod/images/datasets/desert_close.png">
+		</td>
+	</tr>
+</table>
+
+<img src="docs/results.png">
+
+
 ## Citation
 
 Paper: ["GPU-Accelerated LOD Generation for Point Clouds"](https://www.cg.tuwien.ac.at/research/publications/2023/SCHUETZ-2023-LOD/SCHUETZ-2023-LOD-paper.pdf)
