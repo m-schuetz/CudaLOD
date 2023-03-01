@@ -33,8 +33,8 @@ To test with your own point cloud in LAS format:
 
 ## Data Sets
 
-We currently don't have data sets of sufficient size that we can share, but I can recommend looking at some data sets over at [https://opentopography.org/](https://opentopography.org/). Particularly interesting are photogrammetry and terrestrial laser scans, as well as colored LIDAR data.
-* [https://portal.opentopography.org/dataCatalog?platforms=3&platforms=4&formats=0](Photogrammetry and Terrestrial Laser scans)
+For test data sets, I recommend looking at some data sets over at [https://opentopography.org/](https://opentopography.org/). Particularly interesting are photogrammetry and terrestrial laser scans, as well as colored LIDAR data.
+* [Photogrammetry and Terrestrial Laser scans](https://portal.opentopography.org/dataCatalog?platforms=3&platforms=4&formats=0)
 * The [CA21 Bunds](https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.092021.32611.1) data set is also available for download at Open Topography. For our benchmarks, we used a subset of 975 million points, we will upload this subset soon.
 
 Please note following limitations:
