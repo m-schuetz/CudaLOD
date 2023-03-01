@@ -100,6 +100,17 @@ This method first splits the point cloud into leaf nodes of an octree via hierar
 
 <img src="docs/results.png">
 
+## Acknowledgements
+
+This research has been funded by FFG project LargeClouds2BIM.
+
+The authors wish to thank [Iconem](https://iconem.com/en/) for providing data sets
+Palmyra and Saint Roman; Schloss Schönbrunn Kultur- und Betriebs GmbH, Schloss Niederweiden and [Riegl Laser Measurement
+Systems](http://www.riegl.co.at/) for providing the data set of Schloss Niederweiden; Riegl
+Laser Measurement Systems for providing the data set of the town
+of Retz; Bunds et al. and [Open Topography](https://opentopography.org/) for providing the data
+set CA21-Bunds [CA21Bunds]; and the Stanford University Computer Graphics Laboratory for the [Stanford Bunny](http://graphics.stanford.edu/data/3Dscanrep/).
+
 
 ## Citation
 
