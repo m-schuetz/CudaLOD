@@ -31,6 +31,17 @@ To test with your own point cloud in LAS format:
 
 <img src="docs/gui.jpg">
 
+## Data Sets
+
+We currently don't have data sets of sufficient size that we can share, but I can recommend looking at some data sets over at [https://opentopography.org/](https://opentopography.org/). Particularly interesting are photogrammetry and terrestrial laser scans, as well as colored LIDAR data.
+* [https://portal.opentopography.org/dataCatalog?platforms=3&platforms=4&formats=0](Photogrammetry and Terrestrial Laser scans)
+* The [CA21 Bunds](https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.092021.32611.1) data set is also available for download at Open Topography. For our benchmarks, we used a subset of 975 million points, we will upload this subset soon.
+
+Please note following limitations:
+* You'll need about 4.8GB GPU memory for every 100 million points. 
+* The data set needs RGB color data, which is not always available in aerial LIDAR data sets. Photogrammetry nearly always has colors, terrestrial laser scans also tend to have colors.
+
+
 ## Implementation
 
 * The relevant code is in modules/simlod/sampling_cuda_nonprogressive
