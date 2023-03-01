@@ -109,7 +109,7 @@ Palmyra and Saint Roman; Schloss Schönbrunn Kultur- und Betriebs GmbH, Schloss 
 Systems](http://www.riegl.co.at/) for providing the data set of Schloss Niederweiden; Riegl
 Laser Measurement Systems for providing the data set of the town
 of Retz; Bunds et al. and [Open Topography](https://opentopography.org/) for providing the data
-set CA21-Bunds [CA21Bunds]; and the Stanford University Computer Graphics Laboratory for the [Stanford Bunny](http://graphics.stanford.edu/data/3Dscanrep/).
+set CA21-Bunds; and the Stanford University Computer Graphics Laboratory for the [Stanford Bunny](http://graphics.stanford.edu/data/3Dscanrep/).
 
 
 ## Citation
@@ -125,5 +125,7 @@ Bibtex:
 	month =      feb,
 	keywords =   "point cloud rendering, level of detail, LOD",
 	URL =        "https://www.cg.tuwien.ac.at/research/publications/2023/SCHUETZ-2023-LOD/",
+	doi =        "10.48550/ARXIV.2302.14801",
+	publisher =  "arXiv"
 }
 ```
