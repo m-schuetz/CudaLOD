@@ -35,7 +35,7 @@ To test with your own point cloud in LAS format:
 
 For test data sets, I recommend looking at some data sets over at [https://opentopography.org/](https://opentopography.org/). Particularly interesting are photogrammetry and terrestrial laser scans, as well as colored LIDAR data.
 * [Photogrammetry and Terrestrial Laser scans](https://portal.opentopography.org/dataCatalog?platforms=3&platforms=4&formats=0)
-* The [CA21 Bunds](https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.092021.32611.1) data set is also available for download at Open Topography. For our benchmarks, we used a subset of 975 million points, we will upload this subset soon.
+* The [CA21 Bunds](https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.092021.32611.1) data set is also available for download at Open Topography. For our benchmarks, we used a subset of 975 million points - we will upload this subset soon.
 
 Please note following limitations:
 * You'll need about 4.8GB GPU memory for every 100 million points. 
