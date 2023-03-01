@@ -48,8 +48,8 @@ Please note following limitations:
 * CUDA code for LOD generation: 
 	* [kernel.cu](./modules/simlod/sampling_cuda_nonprogressive/kernel.cu) 
 	* [split_countsort_blockwise.h.cu](modules/simlod/sampling_cuda_nonprogressive/split_countsort_blockwise.h.cu) (Name is a lie, it ended up not doing blockwise processing)
-	* [voxelize_sampleselect_first_blockwise.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_sampleselect_first_blockwise.cu]
-	* [voxelize_sampleselect_random_blockwise_globalmem.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_sampleselect_random_blockwise_globalmem.cu]
+	* [voxelize_sampleselect_first_blockwise.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_sampleselect_first_blockwise.cu)
+	* [voxelize_sampleselect_random_blockwise_globalmem.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_sampleselect_random_blockwise_globalmem.cu)
 	* [voxelize_singlecell_blockwise.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_singlecell_blockwise.cu)
 	* [voxelize_neighborhood_blockwise.cu](modules/simlod/sampling_cuda_nonprogressive/voxelize_neighborhood_blockwise.cu)
 * CUDA code for point cloud rendering: [render.cu](./modules/simlod/sampling_cuda_nonprogressive/render.cu). Changes are immediately applied by saving this file. 
