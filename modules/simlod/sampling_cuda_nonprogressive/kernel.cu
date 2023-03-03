@@ -496,4 +496,12 @@ void kernel3(
 		// }
 	} 
 
+		// void** nodes,
+	// uint32_t* num_nodes,
+	// PRINT("uint32_t* buffer: %llu \n", buffer);
+	// PRINT("void* nodes: %llu \n", *nodes);
+	// PRINT("offsetToNodeArray: %llu \n", uint64_t(*nodes) - uint64_t(buffer));
+
+	
+
 }

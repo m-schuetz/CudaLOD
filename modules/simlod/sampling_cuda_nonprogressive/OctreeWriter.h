@@ -30,15 +30,19 @@ struct OctreeWriter{
 		int pointOffset;
 		int numPoints;
 		Point* points;
+		
+		uint32_t dbg = 0;
 		int numAdded;
 		int level;
 		int voxelIndex;
 		vec3 min;
 		vec3 max;
 		float cubeSize;
-		CuNode* children[8];
+		CuNode* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
 		int numVoxels = 0;
 		Point* voxels = nullptr;
+
 		bool visible = true;
 
 		void traverse(string name, std::function<void(CuNode*, string)> callback){
@@ -293,11 +297,17 @@ struct OctreeWriter{
 
 	void write(){
 
+		fs::create_directories(path);
+
 		cout << "writer()" << endl;
 
 		uint64_t offsetToNodeArray = offset_nodes - offset_buffer;
 		CuNode* nodeArray = reinterpret_cast<CuNode*>(buffer->data_u8 + offsetToNodeArray);
 		CuNode* curoot = &nodeArray[0];
+
+		// cout << "offset_nodes: " << offset_nodes << endl;
+		// cout << "offset_buffer: " << offset_buffer << endl;
+		// cout << "offsetToNodeArray: " << offsetToNodeArray << endl;
 
 		cout << "convert pointers" << endl;
 		// make pointers point to host instead of cuda memory

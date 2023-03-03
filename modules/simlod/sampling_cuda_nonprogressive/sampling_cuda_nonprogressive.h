@@ -47,7 +47,7 @@ namespace simlod_gentree_cuda_nonprogressive{
 	// #define MAX_BUFFER_SIZE 15'000'000'000
 
 	// For Bernhard and the CA21 Bunds datas set with 975M points
-	#define MAX_BUFFER_SIZE 15'000'000'000
+	#define MAX_BUFFER_SIZE 5'000'000'000
 
 struct VoxelTreeGen{
 
@@ -310,24 +310,24 @@ struct VoxelTreeGen{
 			// 	bool visible = true;
 			// };
 
-			// cout << "copy device to host" << endl;
-			// Buffer buffer(10'000'000'000);
-			// cuMemcpyDtoH(buffer.data, ptr_buffer, buffer.size);
+			cout << "copy device to host" << endl;
+			Buffer buffer(MAX_BUFFER_SIZE);
+			cuMemcpyDtoH(buffer.data, ptr_buffer, buffer.size);
 
-			// uint64_t ptrNodes = 0;
-			// cuMemcpyDtoH(&ptrNodes, nodes, 8);
+			uint64_t ptrNodes = 0;
+			cuMemcpyDtoH(&ptrNodes, nodes, 8);
 
-			// uint32_t numNodes = 0;
-			// cuMemcpyDtoH(&numNodes, num_nodes, 4);
+			uint32_t numNodes = 0;
+			cuMemcpyDtoH(&numNodes, num_nodes, 4);
 
-			// cuCtxSynchronize();
+			cuCtxSynchronize();
 
-			// Box box;
-			// box.min = lasfile->header.boxMin;
-			// box.max = lasfile->header.boxMax;
-			// string path = "E:/temp/test";
-			// OctreeWriter writer(path, box, &buffer, numNodes, ptr_buffer, ptrNodes);
-			// writer.write();
+			Box box;
+			box.min = lasfile->header.boxMin;
+			box.max = lasfile->header.boxMax;
+			string path = "G:/temp/heidentor_weighted";
+			OctreeWriter writer(path, box, &buffer, numNodes, ptr_buffer, ptrNodes);
+			writer.write();
 		}
 
 		{ // RESULTS

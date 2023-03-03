@@ -255,7 +255,7 @@ int main(){
 	// Setting setting = settings["lion"];
 	// Setting setting = settings["Palmyra_BelTemple_0"];
 	// Setting setting = settings["SaintRoman_2"];
-	Setting setting = settings["whatever"];
+	Setting setting = settings["heidentor"];
 
 	if(setting.radius == 0.0)
 	{ // override camera pos with sensible default
