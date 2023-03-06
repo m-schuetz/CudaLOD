@@ -7,6 +7,8 @@
 #include "glm/common.hpp"
 #include "glm/matrix.hpp"
 #include <glm/gtx/transform.hpp>
+#include <execution>
+#include <algorithm>
 
 #include "toojpeg.h"
 
@@ -18,6 +20,11 @@ using namespace std;
 using glm::vec3;
 
 struct OctreeWriter{
+
+	struct VoxelBuffer{
+		shared_ptr<Buffer> positions = nullptr;
+		shared_ptr<Buffer> colors = nullptr;
+	};
 
 	struct Point{
 		float x;
@@ -118,12 +125,19 @@ struct OctreeWriter{
 		return buffer;
 	}
 
-	shared_ptr<Buffer> toVoxelBuffer(HNode* node){
+	shared_ptr<VoxelBuffer> toVoxelBuffer(HNode* node){
 
 		auto cunode = node->cunode;
 
+		shared_ptr<VoxelBuffer> result = make_shared<VoxelBuffer>();
+		result->colors = make_shared<Buffer>(4 * node->cunode->numVoxels);
+
 		Box cube(cunode->min, cunode->max);
 		vec3 size = cube.size();
+
+		if(node->name == "r1"){
+			int a = 10;
+		}
 
 		if(node->name == "r"){
 			auto buffer = make_shared<Buffer>(node->cunode->numVoxels * 3);
@@ -142,12 +156,10 @@ struct OctreeWriter{
 				buffer->set<uint8_t>(cx, 3 * i + 0);
 				buffer->set<uint8_t>(cy, 3 * i + 1);
 				buffer->set<uint8_t>(cz, 3 * i + 2);
-				// buffer->set<float>(voxel.x, 12 * i + 0);
-				// buffer->set<float>(voxel.y, 12 * i + 4);
-				// buffer->set<float>(voxel.z, 12 * i + 8);
 			}
 
-			return buffer;
+			result->positions = buffer;
+			// return buffer;
 		}else if(node->cunode->numVoxels > 0){
 
 			int gridSize = 64;
@@ -159,16 +171,35 @@ struct OctreeWriter{
 				float fx = 128.0 * (point.x - cunode->min.x) / size.x;
 				float fy = 128.0 * (point.y - cunode->min.y) / size.y;
 				float fz = 128.0 * (point.z - cunode->min.z) / size.z;
-				int ix_h = fx / 2.0;
-				int iz_h = fz / 2.0;
-				int iy_h = fy / 2.0;
+
+				bool outsideX = (fx < 0.0f || fx >= 128.0f);
+				bool outsideY = (fy < 0.0f || fy >= 128.0f);
+				bool outsideZ = (fz < 0.0f || fz >= 128.0f);
+
+				if(outsideX || outsideY || outsideZ){
+					cout << std::format("out-of-bounds({}): pxyz: [{}, {}, {}], fxyz: [{}, {}, {}]", 
+						node->name,
+						point.x, point.y, point.z,
+						fx, fy, fz) << endl;
+				}
+
+				// assert(fx >= 0.0f && fx < 128.0f);
+				// assert(fy >= 0.0f && fy < 128.0f);
+				// assert(fz >= 0.0f && fz < 128.0f);
+
+				int ix_h = clamp(fx / 2.0f, 0.0f, fGridSize - 1.0f);
+				int iz_h = clamp(fz / 2.0f, 0.0f, fGridSize - 1.0f);
+				int iy_h = clamp(fy / 2.0f, 0.0f, fGridSize - 1.0f);
 
 				int cx = clamp(fx - 2.0 * float(ix_h), 0.0, 1.0);
 				int cy = clamp(fy - 2.0 * float(iy_h), 0.0, 1.0);
 				int cz = clamp(fz - 2.0 * float(iz_h), 0.0, 1.0);
+
 				int childIndex = (cx << 2) | (cy << 1) | (cz << 0);
 
 				int voxelIndex = ix_h + iy_h * gridSize + iz_h * gridSize * gridSize;
+
+				assert(voxelIndex < childmasks.size());
 
 				int oldMask = childmasks[voxelIndex];
 
@@ -195,6 +226,9 @@ struct OctreeWriter{
 
 				if(childmasks[voxelIndex] > 0){
 					numParentVoxels++;
+
+					//assert(numParentVoxels <= node->parent->cunode->numVoxels);
+
 					uint8_t childmask = childmasks[voxelIndex];
 					// fout.write((const char*)(&childmask), 1);
 					childmasks_list.push_back(childmask);
@@ -209,17 +243,22 @@ struct OctreeWriter{
 							node->parent->childNumVoxels[nodeChildIndex]++;
 						}
 					}
+
 				}
 			}
+
+			//assert(node->parent->cunode->numVoxels == numParentVoxels);
 
 			auto buffer = make_shared<Buffer>(childmasks_list.size());
 			memcpy(buffer->data, childmasks_list.data(), childmasks_list.size());
 
-			return buffer;
-		}else{
-			return make_shared<Buffer>(0);
+			result->positions = buffer;
 		}
+		// else{
+		// 	return make_shared<Buffer>(0);
+		// }
 
+		return result;
 	}
 
 	shared_ptr<Buffer> toJpegBuffer(HNode* node){
@@ -346,11 +385,12 @@ struct OctreeWriter{
 				return mortoncode;
 			};
 
-			std::sort(node->points, node->points + node->numPoints, [&](Point& a, Point& b){
+			auto parallel = std::execution::par_unseq;
+			std::sort(parallel, node->points, node->points + node->numPoints, [&](Point& a, Point& b){
 				return toMortonCode(a) < toMortonCode(b);
 			});
 
-			std::sort(node->voxels, node->voxels + node->numVoxels, [&](Point& a, Point& b){
+			std::sort(parallel, node->voxels, node->voxels + node->numVoxels, [&](Point& a, Point& b){
 				return toMortonCode(a) < toMortonCode(b);
 			});
 		}
@@ -431,6 +471,10 @@ struct OctreeWriter{
 					numVoxels += node->cunode->numVoxels;
 					numPoints += node->cunode->numPoints;
 
+					if(node->name == "r1"){
+						int a = 10;
+					}
+
 					auto cunode = node->cunode;
 
 					auto voxelBuffer = toVoxelBuffer(node);
@@ -446,12 +490,17 @@ struct OctreeWriter{
 
 					uint64_t voxelBufferOffset = bufferSize;
 					// uint64_t pointBufferOffset = voxelBufferOffset + voxelBuffer->size;
-					uint64_t jpegBufferOffset = voxelBufferOffset + voxelBuffer->size;
+					uint64_t jpegBufferOffset = voxelBufferOffset + voxelBuffer->positions->size;
 
-					buffers.push_back(voxelBuffer);
+					buffers.push_back(voxelBuffer->positions);
 					// buffers.push_back(pointBuffer);
 					buffers.push_back(jpegBuffer);
-					bufferSize += voxelBuffer->size + jpegBuffer->size;
+					bufferSize += voxelBuffer->positions->size + jpegBuffer->size;
+
+					string strNumChildVoxels = "";
+					for(int childIndex = 0; childIndex < 8; childIndex++){
+						strNumChildVoxels += std::to_string(node->childNumVoxels[childIndex]) + ", ";
+					}
 
 					string strNode = std::format(
 				R"V0G0N(
@@ -462,6 +511,7 @@ struct OctreeWriter{
 					voxelBufferOffset: {},
 					jpegBufferOffset: {},
 					jpegBufferSize: {},
+					numChildVoxels: [{}],
 				}},
 				)V0G0N", 
 						node->name, 
@@ -469,7 +519,8 @@ struct OctreeWriter{
 						cunode->max.x, cunode->max.y, cunode->max.z,
 						cunode->numPoints, cunode->numVoxels,
 						voxelBufferOffset, jpegBufferOffset,
-						jpegBuffer->size
+						jpegBuffer->size,
+						strNumChildVoxels
 					);
 
 					ssNodes << strNode << endl;

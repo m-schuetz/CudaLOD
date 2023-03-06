@@ -22,8 +22,8 @@
    
 namespace cg = cooperative_groups;
  
-int dbg;
-
+int dbg;                                  
+ 
 struct Buffer{
 	int offset;
 	int size;

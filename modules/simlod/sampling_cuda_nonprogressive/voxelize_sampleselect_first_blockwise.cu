@@ -291,9 +291,9 @@ void main_voxelize(
 
 					Point point = child->points[pointIndex];
 
-					int ix = float(bitgrid_size) * (point.x - child->min.x) / childSize.x;
-					int iy = float(bitgrid_size) * (point.y - child->min.y) / childSize.y;
-					int iz = float(bitgrid_size) * (point.z - child->min.z) / childSize.z;
+					int ix = clamp(float(bitgrid_size) * (point.x - child->min.x) / childSize.x, 0.0f, float(bitgrid_size) - 1.0f);
+					int iy = clamp(float(bitgrid_size) * (point.y - child->min.y) / childSize.y, 0.0f, float(bitgrid_size) - 1.0f);
+					int iz = clamp(float(bitgrid_size) * (point.z - child->min.z) / childSize.z, 0.0f, float(bitgrid_size) - 1.0f);
 
 					uint32_t voxelIndex = ix + bitgrid_size * iy + bitgrid_size * bitgrid_size * iz;
 					voxelIndex = min(voxelIndex, numCells - 1);
@@ -310,6 +310,8 @@ void main_voxelize(
 						point.x = float(ix + 0.5f) * childSize.x / float(bitgrid_size) + child->min.x;
 						point.y = float(iy + 0.5f) * childSize.y / float(bitgrid_size) + child->min.y;
 						point.z = float(iz + 0.5f) * childSize.z / float(bitgrid_size) + child->min.z;
+
+
 						accepted[targetIndex] = point;
 					}
 				}
@@ -325,9 +327,9 @@ void main_voxelize(
 
 					Point point = child->voxels[pointIndex];
 
-					int ix = float(bitgrid_size) * (point.x - child->min.x) / childSize.x;
-					int iy = float(bitgrid_size) * (point.y - child->min.y) / childSize.y;
-					int iz = float(bitgrid_size) * (point.z - child->min.z) / childSize.z;
+					int ix = clamp(float(bitgrid_size) * (point.x - child->min.x) / childSize.x, 0.0f, float(bitgrid_size) - 1.0f);
+					int iy = clamp(float(bitgrid_size) * (point.y - child->min.y) / childSize.y, 0.0f, float(bitgrid_size) - 1.0f);
+					int iz = clamp(float(bitgrid_size) * (point.z - child->min.z) / childSize.z, 0.0f, float(bitgrid_size) - 1.0f);
 
 					uint32_t voxelIndex = ix + bitgrid_size * iy + bitgrid_size * bitgrid_size * iz;
 					voxelIndex = min(voxelIndex, numCells - 1);
@@ -343,6 +345,19 @@ void main_voxelize(
 						point.x = float(ix + 0.5f) * childSize.x / float(bitgrid_size) + child->min.x;
 						point.y = float(iy + 0.5f) * childSize.y / float(bitgrid_size) + child->min.y;
 						point.z = float(iz + 0.5f) * childSize.z / float(bitgrid_size) + child->min.z;
+
+						// if(point.x >= node->max.x || point.y >= node->max.y || point.z >= node->max.z)
+						// {
+						// 	printf("\n");
+						// 	printf("\n");
+						// 	printf("## OUT OF BOUNDS. %f, %f, %f   >   %f, %f, %f | ixyz: %u, %u, %u \n", 
+						// 		point.x, point.y, point.z,
+						// 		node->max.x, node->max.y, node->max.z,
+						// 		ix, iy, iz
+						// 		);
+						// 	printf("\n");
+						// 	printf("\n");
+						// }
 
 						accepted[targetIndex] = point;
 					}

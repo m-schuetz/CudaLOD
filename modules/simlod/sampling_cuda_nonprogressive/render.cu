@@ -22,6 +22,10 @@ constexpr float DEFAULT_DEPTH = 100000000000.0;
 
 constexpr bool SHOW_BOUNDING_BOXES = false;
 
+struct {
+	Lines* lines;
+} globals;
+
 // static constexpr uint32_t SPECTRAL[11] = {
 // 	0x9e0142,
 // 	0xd53e4f,
@@ -1059,6 +1063,15 @@ void renderHQS(
 					childMask = childMask | (1 << i);
 				}
 			}
+
+			__shared__ bool hasOutOfBounds;
+
+			if(block.thread_rank() == 0){
+				hasOutOfBounds = 0;
+			}
+
+			block.sync();
+
 			int numIterations_voxels = node->numVoxels / block.num_threads() + 1;
 			for(int it = 0; it < numIterations_voxels; it++){
 
@@ -1067,6 +1080,16 @@ void renderHQS(
 				if(voxelIndex >= node->numVoxels) break;
 
 				Point voxel = node->voxels[voxelIndex];
+
+				if(voxel.x >= node->max.x || voxel.y >= node->max.y || voxel.z >= node->max.z){
+					// printf("out of bounds, voxelIndex: %i \n", voxelIndex);
+					hasOutOfBounds = true;
+				}
+				if(voxel.x < node->min.x || voxel.y < node->min.y || voxel.z < node->min.z){
+					// printf("out of bounds, voxelIndex: %i \n", voxelIndex);
+					hasOutOfBounds = true;
+				}
+			
 
 				{// discard voxels where higher LOD childs are visible
 					int ix = 2.0 * (voxel.x - node->min.x) / node->cubeSize;
@@ -1106,6 +1129,21 @@ void renderHQS(
 				uint32_t idepth = *((uint32_t*)&depth);
 
 				atomicMin(&rt_depth[pixelID], idepth);
+			}
+
+			block.sync();
+
+			if(block.thread_rank() == 0 && hasOutOfBounds){
+				// uint64_t abc;
+				// asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(abc));
+				// uint32_t def = (abc / 1'000'000) & 0xff;
+				// printf("out of bounds %u \n", def);
+
+				// drawLine(globals.lines, {0.0f, 0.0f, 0.0f}, {2.0f, 2.0f, 2.0f}, 0x000000ff);
+				vec3 pos = (node->max + node->min) / 2.0f;
+				vec3 size = node->max - node->min;
+				drawBoundingBox(globals.lines, pos, size, 0x000000ff);
+				node->dbg = 1234;
 			}
 		}
 	}
@@ -1166,6 +1204,12 @@ void renderHQS(
 					uint32_t R = (point.color >>  0) & 0xff;
 					uint32_t G = (point.color >>  8) & 0xff;
 					uint32_t B = (point.color >> 16) & 0xff;
+
+					if(node->dbg == 1234){
+						R = 255;
+						G = 0;
+						B = 0;
+					}
 
 					// R = 255;
 					// G = 0;
@@ -1249,9 +1293,11 @@ void renderHQS(
 					uint32_t G = (voxel.color >>  8) & 0xff;
 					uint32_t B = (voxel.color >> 16) & 0xff;
 
-					// R = 0;
-					// G = 255;
-					// B = 0;
+					if(node->dbg == 1234){
+						R = 255;
+						G = 0;
+						B = 0;
+					}
 
 					atomicAdd(&rt_accum[4 * pixelID + 0], R);
 					atomicAdd(&rt_accum[4 * pixelID + 1], G);
@@ -1395,6 +1441,8 @@ void kernel(
 	Lines* lines = (Lines*)*_lines;
 	Points* points = (Points*)*_points;
 
+	globals.lines = lines;
+
 	lines->count = 0;
 
 	Allocator allocator(buffer, 0);
@@ -1471,6 +1519,7 @@ void kernel(
 		// 0.5, 5.0
 
 		float lod_factor = 1.0f - 0.97f * args.LOD;
+		// lod_factor = 0.03;
 
 		if(node->cubeSize / distance < lod_factor){
 			visible = false;
@@ -1627,6 +1676,10 @@ void kernel(
 	renderHQS(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
 
 	grid.sync();
+
+	// if(grid.thread_rank() == 0){
+	// 	printf("%u \n", lines->count);
+	// }
 
 	drawBoundingBoxes(allocator, nodes, numNodes, rt_resolved_depth, rt_resolved_color, args);
 	grid.sync();

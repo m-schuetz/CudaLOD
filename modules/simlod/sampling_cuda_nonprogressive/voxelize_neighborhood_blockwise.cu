@@ -455,6 +455,27 @@ void main_voxelize(
 				voxel.z = pos.z;
 				voxel.color = color;
 
+				// bool outsideX = pos.x < node->min.x || pos.x >= node->max.x;
+				// bool outsideY = pos.y < node->min.y || pos.y >= node->max.y;
+				// bool outsideZ = pos.z < node->min.z || pos.z >= node->max.z;
+				// if(outsideX || outsideY || outsideZ){
+				// 	printf("out of bounds \n");
+				// }
+
+				// if(node->level == 3 && node->voxelIndex == 99){
+				// 	if(voxel.y > 2.32621408f - 0.01f && voxel.y < 2.32621408f + 0.01f)
+				// 	if(voxel.z > 0.841976047f - 0.01f && voxel.z < 0.841976047f + 0.01f)
+				// 	// if(index < 10)
+				// 	{
+				// 		printf("xyz: %f, %f, %f \n", voxel.x, voxel.y, voxel.z);
+				// 	}
+				// }
+
+				// if(voxel.x == 0.0f && voxel.y == 0.0f && voxel.z == 0.0f){
+				// 	printf("xyz: %f, %f, %f \n", voxel.x, voxel.y, voxel.z);
+				// }
+				
+
 				node->voxels[index] = voxel;
 
 				// Since only cells that contain points are affected,
