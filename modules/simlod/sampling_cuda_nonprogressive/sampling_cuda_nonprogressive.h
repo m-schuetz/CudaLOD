@@ -47,7 +47,7 @@ namespace simlod_gentree_cuda_nonprogressive{
 	// #define MAX_BUFFER_SIZE 15'000'000'000
 
 	// For Bernhard and the CA21 Bunds datas set with 975M points
-	#define MAX_BUFFER_SIZE 10'000'000'000
+	#define MAX_BUFFER_SIZE 5'000'000'000
 
 struct VoxelTreeGen{
 
@@ -285,7 +285,7 @@ struct VoxelTreeGen{
 		auto tEnd = now();
 		// cout << "cuda duration: " << formatNumber(1000.0 * (tEnd - tStart), 1) << "ms" << endl;
 
-		if(false)
+		// if(false)
 		{ // write test results
 
 			// struct Point{

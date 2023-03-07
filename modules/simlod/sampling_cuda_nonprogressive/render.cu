@@ -1205,12 +1205,6 @@ void renderHQS(
 					uint32_t G = (point.color >>  8) & 0xff;
 					uint32_t B = (point.color >> 16) & 0xff;
 
-					if(node->dbg == 1234){
-						R = 255;
-						G = 0;
-						B = 0;
-					}
-
 					// R = 255;
 					// G = 0;
 					// B = 0;
@@ -1298,6 +1292,18 @@ void renderHQS(
 						G = 0;
 						B = 0;
 					}
+
+
+					// R = node->dbg; 
+					// G = 0;
+					// B = 0;
+
+					// if(node->dbg < 4){
+					// 	R = 255;
+					// 	G = 0;
+					// 	B = 255;
+					// }
+
 
 					atomicAdd(&rt_accum[4 * pixelID + 0], R);
 					atomicAdd(&rt_accum[4 * pixelID + 1], G);

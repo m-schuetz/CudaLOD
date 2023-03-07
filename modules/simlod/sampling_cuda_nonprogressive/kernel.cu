@@ -164,7 +164,7 @@ void kernel2(
 	// 	vec3 end = {100.0f, 100.0f, 100.0f};
 	// 	drawLine(lines, start, end, 0x0000ff00);
 	// 	drawBoundingBox(lines, {0.0f, 0.0f, 0.0f}, {100.0f, 100.0f, 100.0f}, 0x000000ff);
-	// }
+	// }        
 	
 	// GLOBAL STATE
 	globals.buffer        = buffer;
@@ -173,7 +173,7 @@ void kernel2(
 	globals.allocator     = &allocator;
 	globals.lines         = lines;
 
-	Box3 box;    
+	Box3 box; 
 	{
 		box.min = {state.metadata.min_x, state.metadata.min_y, state.metadata.min_z};
 		box.max = {state.metadata.max_x, state.metadata.max_y, state.metadata.max_z};
@@ -284,7 +284,7 @@ void kernel3(
 	// sampleselect_first_blockwise::main_voxelize(allocator, box, state.metadata.numPoints, *nodes, *num_nodes, *sorted);
 	// sampleselect_central_blockwise::main_voxelize(allocator, box, state.metadata.numPoints, *nodes, *num_nodes, *sorted);
 	// sampleselect_first::main_voxelize(allocator, box, state.metadata.numPoints, *nodes, *num_nodes, *sorted);
-    
+     
 	if(grid.thread_rank() == 0){
 		Timer::instance->t_end = clock64();
 		asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(Timer::instance->t_end_nano));

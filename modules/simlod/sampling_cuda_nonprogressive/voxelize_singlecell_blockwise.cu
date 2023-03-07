@@ -276,6 +276,9 @@ void main_voxelize(
 		}
 	}
 
+	// update allocator.offset for subsequent allocations in "kernel.cu"
+	allocator.offset = globalAllocatorOffset;
+
 	// PRINT("smallVolumeNodeCounter: %i \n", smallVolumeNodeCounter);
 	// PRINT("smallVolumePointCounter: %i k \n", (smallVolumePointCounter / 1000) );
 }

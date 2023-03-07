@@ -481,11 +481,32 @@ struct OctreeWriter{
 					// auto pointBuffer = toPointBuffer(node);
 					auto jpegBuffer = toJpegBuffer(node);
 
-					{ // DEBUG
+					{ // DEBUG - WRITE JPEG
 
 						Buffer& ref = *jpegBuffer;
 						string filepath = path + "/" + node->name + ".jpeg";
 						writeBinaryFile(filepath, ref);
+					}
+
+					if(node->cunode->numVoxels > 0)
+					{ // DEBUG - WRITE CSV
+
+						stringstream ss;
+
+						for(int voxelIndex = 0; voxelIndex < node->cunode->numVoxels; voxelIndex++){
+
+							auto voxel = node->cunode->voxels[voxelIndex];
+							uint8_t* rgba = (uint8_t*)&voxel.color;
+
+							ss << std::format("{}, {}, {}, {}, {}, {}", 
+								voxel.x, voxel.y, voxel.z, rgba[0], rgba[1], rgba[2]);
+							ss << endl;
+
+						}
+
+						string filepath = path + "/" + node->name + ".csv";
+						writeFile(filepath, ss.str());
+
 					}
 
 					uint64_t voxelBufferOffset = bufferSize;

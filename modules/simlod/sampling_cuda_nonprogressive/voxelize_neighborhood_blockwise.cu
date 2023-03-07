@@ -260,11 +260,13 @@ void main_voxelize(
 	uint32_t& totalVoxelBufferSize = *allocator.alloc<uint32_t*>(4, "total voxel buffer counter");
 	uint32_t& nodeVoxelBufferSize  = *allocator.alloc<uint32_t*>(4, "node voxel buffer counter");
 	uint32_t& clearCounter         = *allocator.alloc<uint32_t*>(4, "clear counter");
+	uint32_t& nodeCounter          = *allocator.alloc<uint32_t*>(4);
 
 	if(isFirstThread()){
 		totalVoxelBufferSize = 0;
 		nodeVoxelBufferSize = 0;
 		clearCounter = 0;
+		nodeCounter = 0;
 	}
 
 	grid.sync();
@@ -283,7 +285,9 @@ void main_voxelize(
 	uint32_t* voxelGrids       = allocator.alloc<uint32_t*>(grid.num_blocks() * voxelGridByteSize, "voxel sampling grids");
 	uint32_t* voxelGrid        = voxelGrids + grid.block_rank() * 4 * numCells;
 
+	allocator.alloc<uint32_t*>(10000 * 16);
 	uint64_t& globalAllocatorOffset = *allocator.alloc<uint64_t*>(8);
+	allocator.alloc<uint32_t*>(10000 * 16);
 
 	__shared__ uint32_t sh_workIndex;
 	__shared__ uint32_t sh_numAccepted;
@@ -297,9 +301,9 @@ void main_voxelize(
 	if(isFirstThread()){
 		globalAllocatorOffset = allocator.offset;
 
-		printf("allocator.offset: ");
-		printNumber(allocator.offset, 10);
-		printf("\n");
+		// printf("allocator.offset: ");
+		// printNumber(allocator.offset, 10);
+		// printf("\n");
 	}
 	grid.sync();
 
@@ -412,6 +416,25 @@ void main_voxelize(
 				node->numVoxels = sh_numAccepted;
 			}
 
+			// { // DEBUG: clear voxel buffer first (should not be necessary)
+			// 	block.sync();
+
+			// 	int numIterations = sh_numAccepted / block.num_threads() + 1;
+			// 	for(int it = 0; it <= numIterations; it++){
+			// 		int index = block.num_threads() * it + block.thread_rank();
+
+			// 		if(index >= sh_numAccepted) continue;
+
+			// 		Point point;
+			// 		point.x = 0;
+			// 		point.y = 0;
+			// 		point.z = 0;
+			// 		point.color = 0;
+			// 		node->voxels[index] = point;
+
+			// 	}
+			// }
+
 			block.sync();
 
 			// EXTRACT
@@ -455,12 +478,12 @@ void main_voxelize(
 				voxel.z = pos.z;
 				voxel.color = color;
 
-				// bool outsideX = pos.x < node->min.x || pos.x >= node->max.x;
-				// bool outsideY = pos.y < node->min.y || pos.y >= node->max.y;
-				// bool outsideZ = pos.z < node->min.z || pos.z >= node->max.z;
-				// if(outsideX || outsideY || outsideZ){
-				// 	printf("out of bounds \n");
-				// }
+				bool outsideX = pos.x < node->min.x || pos.x >= node->max.x;
+				bool outsideY = pos.y < node->min.y || pos.y >= node->max.y;
+				bool outsideZ = pos.z < node->min.z || pos.z >= node->max.z;
+				if(outsideX || outsideY || outsideZ){
+					// printf("out of bounds \n");
+				}
 
 				// if(node->level == 3 && node->voxelIndex == 99){
 				// 	if(voxel.y > 2.32621408f - 0.01f && voxel.y < 2.32621408f + 0.01f)
@@ -485,12 +508,20 @@ void main_voxelize(
 				voxelGrid[4 * voxelIndex + 1] = 0;
 				voxelGrid[4 * voxelIndex + 2] = 0;
 				voxelGrid[4 * voxelIndex + 3] = 0;
+			}
 
+			if(block.thread_rank() == 0){
+				node->dbg = atomicAdd(&nodeCounter, 1);
 			}
 			
 			block.sync();
 		}
 	}
+
+	grid.sync();
+
+	// update allocator.offset for subsequent allocations in "kernel.cu"
+	allocator.offset = globalAllocatorOffset;
 
 	// PRINT("smallVolumeNodeCounter: %i \n", smallVolumeNodeCounter);
 	// PRINT("smallVolumePointCounter: %i k \n", (smallVolumePointCounter / 1000) );
