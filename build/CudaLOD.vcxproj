@@ -91,12 +91,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\include;$(SolutionDir)..\libs\glfw\include;$(SolutionDir)..\libs\glew\include;$(SolutionDir)..\libs\imgui\;$(SolutionDir)..\libs\implot\;$(SolutionDir)..\libs\imgui\backends;$(SolutionDir)..\libs\glm;$(SolutionDir)..\modules;$(SolutionDir)..\libs\json;$(SolutionDir)..\libs\openvr\headers;$(CUDA_PATH)\include;$(SolutionDir)..\libs\laszip;$(SolutionDir)..\libs\toojpeg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\include;$(SolutionDir)..\libs\glfw\include;$(SolutionDir)..\libs\glew\include;$(SolutionDir)..\libs\imgui\;$(SolutionDir)..\libs\implot\;$(SolutionDir)..\libs\imgui\backends;$(SolutionDir)..\libs\glm;$(SolutionDir)..\modules;$(SolutionDir)..\libs\json;$(SolutionDir)..\libs\openvr\headers;$(CUDA_PATH)\include;$(SolutionDir)..\libs\laszip;$(SolutionDir)..\libs\toojpeg;$(SolutionDir)..\libs\brotli\c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)..\libs\glfw\lib\msvc2017_x64\glfw3.lib;opengl32.lib;$(SolutionDir)..\libs\openvr\lib\win64\openvr_api.lib;$(CUDA_PATH)\lib\x64\cuda.lib;$(CUDA_PATH)\lib\x64\cudart.lib;$(CUDA_PATH)\lib\x64\nvrtc.lib;$(CUDA_PATH)\lib\x64\nvrtc_static.lib;$(CUDA_PATH)\lib\x64\nvrtc-builtins_static.lib;$(SolutionDir)Release\laszip.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)..\libs\glfw\lib\msvc2017_x64\glfw3.lib;opengl32.lib;$(SolutionDir)..\libs\openvr\lib\win64\openvr_api.lib;$(CUDA_PATH)\lib\x64\cuda.lib;$(CUDA_PATH)\lib\x64\cudart.lib;$(CUDA_PATH)\lib\x64\nvrtc.lib;$(CUDA_PATH)\lib\x64\nvrtc_static.lib;$(CUDA_PATH)\lib\x64\nvrtc-builtins_static.lib;$(SolutionDir)Release\laszip.lib;$(SolutionDir)brotli\Release\brotlienc-static.lib;$(SolutionDir)brotli\Release\brotlidec-static.lib;$(SolutionDir)brotli\Release\brotlicommon-static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)..\libs\openvr\openvr_api.dll" "$(OutDir)"</Command>
@@ -127,14 +127,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\include;$(SolutionDir)..\libs\glfw\include;$(SolutionDir)..\libs\glew\include;$(SolutionDir)..\libs\imgui\;$(SolutionDir)..\libs\implot\;$(SolutionDir)..\libs\imgui\backends;$(SolutionDir)..\libs\glm;$(SolutionDir)..\modules;$(SolutionDir)..\libs\json;$(SolutionDir)..\libs\openvr\headers;$(CUDA_PATH)\include;$(SolutionDir)..\libs\laszip;$(SolutionDir)..\libs\toojpeg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\include;$(SolutionDir)..\libs\glfw\include;$(SolutionDir)..\libs\glew\include;$(SolutionDir)..\libs\imgui\;$(SolutionDir)..\libs\implot\;$(SolutionDir)..\libs\imgui\backends;$(SolutionDir)..\libs\glm;$(SolutionDir)..\modules;$(SolutionDir)..\libs\json;$(SolutionDir)..\libs\openvr\headers;$(CUDA_PATH)\include;$(SolutionDir)..\libs\laszip;$(SolutionDir)..\libs\toojpeg;$(SolutionDir)..\libs\brotli\c\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)..\libs\glfw\lib\msvc2017_x64\glfw3.lib;opengl32.lib;$(SolutionDir)..\libs\openvr\lib\win64\openvr_api.lib;$(CUDA_PATH)\lib\x64\cuda.lib;$(CUDA_PATH)\lib\x64\cudart.lib;$(CUDA_PATH)\lib\x64\nvrtc.lib;$(CUDA_PATH)\lib\x64\nvrtc_static.lib;$(CUDA_PATH)\lib\x64\nvrtc-builtins_static.lib;$(SolutionDir)Release\laszip.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)..\libs\glfw\lib\msvc2017_x64\glfw3.lib;opengl32.lib;$(SolutionDir)..\libs\openvr\lib\win64\openvr_api.lib;$(CUDA_PATH)\lib\x64\cuda.lib;$(CUDA_PATH)\lib\x64\cudart.lib;$(CUDA_PATH)\lib\x64\nvrtc.lib;$(CUDA_PATH)\lib\x64\nvrtc_static.lib;$(CUDA_PATH)\lib\x64\nvrtc-builtins_static.lib;$(SolutionDir)Release\laszip.lib;$(SolutionDir)brotli\Release\brotlienc-static.lib;$(SolutionDir)brotli\Release\brotlidec-static.lib;$(SolutionDir)brotli\Release\brotlicommon-static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /Y "$(SolutionDir)..\libs\openvr\openvr_api.dll" "$(OutDir)"</Command>

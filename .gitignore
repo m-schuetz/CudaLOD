@@ -17,3 +17,14 @@ build/laszip.dir
 paper/cudalod/work/voxelize.blend1
 paper/cudalod/work/workflow.blend1
 results.json
+build/brotli/brotli.dir/Debug/
+build/brotli/brotli.dir/Release/
+build/brotli/brotlicommon-static.dir/Debug/
+build/brotli/brotlicommon-static.dir/Release/
+build/brotli/brotlidec-static.dir/Debug/
+build/brotli/brotlidec-static.dir/Release/
+build/brotli/brotlienc-static.dir/Debug/
+build/brotli/brotlienc-static.dir/Release/
+build/brotli/CMakeFiles/
+build/brotli/Release/
+build/brotli/Debug/

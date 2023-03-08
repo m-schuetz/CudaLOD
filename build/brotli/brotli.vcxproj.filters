@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\dev\workspaces\CudaLOD\main\libs\brotli\c\tools\brotli.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\dev\workspaces\CudaLOD\main\libs\brotli\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{88803250-1031-3478-A06F-A990FB4B12F6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

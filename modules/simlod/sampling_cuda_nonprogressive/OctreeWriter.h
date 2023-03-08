@@ -9,6 +9,7 @@
 #include <glm/gtx/transform.hpp>
 #include <execution>
 #include <algorithm>
+#include "brotli/encode.h"
 
 #include "toojpeg.h"
 
@@ -93,11 +94,6 @@ struct OctreeWriter{
 		}
 	};
 
-	// struct Batch{
-	// 	string name;
-	// 	vector<HNode*> nodes;
-	// };
-
 	OctreeWriter(string path, Box box, Buffer* buffer, int numNodes, uint64_t offset_buffer, uint64_t offset_nodes){
 		this->path = path;
 		this->buffer = buffer;
@@ -105,6 +101,53 @@ struct OctreeWriter{
 		this->offset_buffer = offset_buffer;
 		this->offset_nodes = offset_nodes;
 		this->box = box;
+	}
+
+	shared_ptr<Buffer> compress(shared_ptr<Buffer> buffer) {
+
+		shared_ptr<Buffer> out = nullptr;
+		{
+
+			int quality = 6;
+			int lgwin = BROTLI_DEFAULT_WINDOW;
+			auto mode = BROTLI_DEFAULT_MODE;
+			uint8_t* input_buffer = buffer->data_u8;
+			size_t input_size = buffer->size;
+
+			size_t encoded_size = input_size * 1.5 + 1'000;
+			shared_ptr<Buffer> outputBuffer = make_shared<Buffer>(encoded_size);
+			uint8_t* encoded_buffer = outputBuffer->data_u8;
+
+			BROTLI_BOOL success = BROTLI_FALSE;
+
+			for (int i = 0; i < 5; i++) {
+				success = BrotliEncoderCompress(quality, lgwin, mode, input_size, input_buffer, &encoded_size, encoded_buffer);
+
+				if (success == BROTLI_TRUE) {
+					break;
+				} else {
+					encoded_size = (encoded_size + 1024) * 1.5;
+					outputBuffer = make_shared<Buffer>(encoded_size);
+					encoded_buffer = outputBuffer->data_u8;
+
+					cout << std::format("reserved encoded_buffer size was too small. Trying again with size {}." , formatNumber(encoded_size)) << endl;
+				}
+			}
+
+			if (success == BROTLI_FALSE) {
+				stringstream ss;
+				ss << "failed to compress. aborting conversion." ;
+				cout << ss.str() << endl;
+
+				exit(123);
+			}
+
+			out = make_shared<Buffer>(encoded_size);
+			memcpy(out->data, encoded_buffer, encoded_size);
+			
+		}
+
+		return out;
 	}
 
 	shared_ptr<Buffer> toPointBuffer(HNode* node){
@@ -259,6 +302,24 @@ struct OctreeWriter{
 		// }
 
 		return result;
+	}
+
+	shared_ptr<Buffer> toColorBuffer(HNode* node){
+
+		auto cunode = node->cunode;
+
+		auto buffer = make_shared<Buffer>(node->cunode->numVoxels * 3);
+
+		for(int i = 0; i < node->cunode->numVoxels; i++){
+			Point voxel = node->cunode->voxels[i];
+			uint8_t* rgba = (uint8_t*)&voxel.color;
+
+			buffer->set<uint8_t>(rgba[0], 3 * i + 0);
+			buffer->set<uint8_t>(rgba[1], 3 * i + 1);
+			buffer->set<uint8_t>(rgba[2], 3 * i + 2);
+		}
+
+		return buffer;
 	}
 
 	shared_ptr<Buffer> toJpegBuffer(HNode* node){
@@ -471,15 +532,78 @@ struct OctreeWriter{
 					numVoxels += node->cunode->numVoxels;
 					numPoints += node->cunode->numPoints;
 
-					if(node->name == "r1"){
-						int a = 10;
+					auto cunode = node->cunode;
+		
+
+					auto toVoxelIndex = [](Point voxel, CuNode* node){
+
+						int ix = clamp(128.0f * (voxel.x - node->min.x) / (node->max.x - node->min.x), 0.0f, 127.0f);
+						int iy = clamp(128.0f * (voxel.y - node->min.y) / (node->max.y - node->min.y), 0.0f, 127.0f);
+						int iz = clamp(128.0f * (voxel.z - node->min.z) / (node->max.z - node->min.z), 0.0f, 127.0f);
+						
+						int voxelIndex = ix + iy * 128 + iz * 128 * 128;
+					
+						return voxelIndex;
+					};
+
+					vector<Point> parentVoxels(cunode->numVoxels);
+					int i_parent = 0;
+					for(int i_child = 0; i_child < cunode->numVoxels; i_child++){
+
+						if(node->name == "r"){
+							// for root node, make each voxel = parentVoxel
+							parentVoxels[i_child] = cunode->voxels[i_child];
+						}else{
+							auto parent = node->parent->cunode;
+							Point v_parent = node->parent->cunode->voxels[i_parent];
+							Point v_child = cunode->voxels[i_child];
+
+							bool isParent = toVoxelIndex(v_parent, parent) == toVoxelIndex(v_child, parent);
+
+							if(isParent){
+								parentVoxels[i_child] = v_parent;
+							}else{
+								// repeat same loop iteration with next parent candidate
+								i_parent++;
+								i_child--;
+							}
+						}
+
+						
 					}
 
-					auto cunode = node->cunode;
-
 					auto voxelBuffer = toVoxelBuffer(node);
-					// auto pointBuffer = toPointBuffer(node);
 					auto jpegBuffer = toJpegBuffer(node);
+					auto colBuffer = toColorBuffer(node);
+					auto colCompressedBuffer = compress(colBuffer);
+
+					auto colDiffBuffer = make_shared<Buffer>(colBuffer->size);
+					for(int i_child = 0; i_child < cunode->numVoxels; i_child++){
+						Point v_parent = parentVoxels[i_child];
+						Point v_child = cunode->voxels[i_child];
+
+						uint8_t* rgba_parent = (uint8_t*)&v_parent.color;
+						uint8_t* rgba_child= (uint8_t*)&v_child.color;
+
+						auto encode = [](int diff) -> uint8_t {
+							int value = floor(log2f(abs(float(diff))));
+							if(diff < 0){
+								value = value + 8;
+							}
+
+							return value;
+						};
+
+						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[0] - rgba_child[0]), 3 * i_child + 0);
+						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[1] - rgba_child[1]), 3 * i_child + 1);
+						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[2] - rgba_child[2]), 3 * i_child + 2);
+
+						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[0]) - int(rgba_child[0])), 3 * i_child + 0);
+						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[1]) - int(rgba_child[1])), 3 * i_child + 1);
+						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[2]) - int(rgba_child[2])), 3 * i_child + 2);
+					}
+					auto colDiffCompressedBuffer = compress(colDiffBuffer);
+
 
 					{ // DEBUG - WRITE JPEG
 
@@ -509,14 +633,26 @@ struct OctreeWriter{
 
 					}
 
-					uint64_t voxelBufferOffset = bufferSize;
-					// uint64_t pointBufferOffset = voxelBufferOffset + voxelBuffer->size;
-					uint64_t jpegBufferOffset = voxelBufferOffset + voxelBuffer->positions->size;
+					uint64_t voxelBufferOffset             = bufferSize;
+					uint64_t jpegBufferOffset              = voxelBufferOffset         + voxelBuffer->positions->size;
+					uint64_t colBufferOffset               = jpegBufferOffset          + jpegBuffer->size;
+					uint64_t colCompressedBufferOffset     = colBufferOffset           + colBuffer->size;
+					uint64_t colDiffBufferOffset           = colCompressedBufferOffset + colCompressedBuffer->size;
+					uint64_t colDiffCompressedBufferOffset = colDiffBufferOffset       + colDiffBuffer->size;
 
 					buffers.push_back(voxelBuffer->positions);
-					// buffers.push_back(pointBuffer);
 					buffers.push_back(jpegBuffer);
-					bufferSize += voxelBuffer->positions->size + jpegBuffer->size;
+					buffers.push_back(colBuffer);
+					buffers.push_back(colCompressedBuffer);
+					buffers.push_back(colDiffBuffer);
+					buffers.push_back(colDiffCompressedBuffer);
+
+					bufferSize += voxelBuffer->positions->size;
+					bufferSize += jpegBuffer->size;
+					bufferSize += colBuffer->size;
+					bufferSize += colCompressedBuffer->size;
+					bufferSize += colDiffBuffer->size;
+					bufferSize += colDiffCompressedBuffer->size;
 
 					string strNumChildVoxels = "";
 					for(int childIndex = 0; childIndex < 8; childIndex++){
@@ -532,6 +668,18 @@ struct OctreeWriter{
 					voxelBufferOffset: {},
 					jpegBufferOffset: {},
 					jpegBufferSize: {},
+					colBufferOffset: {},
+					colBufferSize: {},
+					colCompressedBufferOffset: {},
+					colCompressedBufferSize: {},
+					colDiffBufferOffset: {},
+					colDiffBufferSize: {},
+					colDiffCompressedBufferOffset: {},
+					colDiffCompressedBufferSize: {},
+					jpegBBP: {},
+					colBBP: {},
+					colCompressedBPP: {},
+					colDiffCompressedBPP: {},
 					numChildVoxels: [{}],
 				}},
 				)V0G0N", 
@@ -539,8 +687,16 @@ struct OctreeWriter{
 						cunode->min.x, cunode->min.y, cunode->min.z,
 						cunode->max.x, cunode->max.y, cunode->max.z,
 						cunode->numPoints, cunode->numVoxels,
-						voxelBufferOffset, jpegBufferOffset,
-						jpegBuffer->size,
+						voxelBufferOffset, 
+						jpegBufferOffset, jpegBuffer->size,
+						colBufferOffset, colBuffer->size,
+						colCompressedBufferOffset, colCompressedBuffer->size,
+						colDiffBufferOffset, colDiffBuffer->size,
+						colDiffCompressedBufferOffset, colDiffCompressedBuffer->size,
+						std::format("{:.3}", 8.0 * float(jpegBuffer->size) / node->cunode->numVoxels),
+						std::format("{:.3}", 8.0 * float(colBuffer->size) / node->cunode->numVoxels),
+						std::format("{:.3}", 8.0 * float(colCompressedBuffer->size) / node->cunode->numVoxels),
+						std::format("{:.3}", 8.0 * float(colDiffCompressedBuffer->size) / node->cunode->numVoxels),
 						strNumChildVoxels
 					);
 
