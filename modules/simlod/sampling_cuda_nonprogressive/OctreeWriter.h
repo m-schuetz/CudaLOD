@@ -20,6 +20,14 @@
 using namespace std;
 using glm::vec3;
 
+// RGBA encode(RGBA decoded_parent, RGBA decoded_child){
+
+// }
+
+// RGBA decode(RGBA encoded_child, RGBA decoded_parent){
+
+// }
+
 struct OctreeWriter{
 
 	struct VoxelBuffer{
@@ -32,6 +40,13 @@ struct OctreeWriter{
 		float y;
 		float z;
 		unsigned int color;
+	};
+
+	struct RGBA{
+		int r;
+		int g;
+		int b;
+		int a;
 	};
 
 	struct CuNode{
@@ -78,6 +93,9 @@ struct OctreeWriter{
 		HNode* children[8];
 		HNode* parent = nullptr;
 		int childNumVoxels[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+		int voxelsPerOctant[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+		vector<RGBA> diffColors;
+		shared_ptr<VoxelBuffer> voxelBuffer = nullptr;
 
 		string name = "";
 
@@ -89,6 +107,18 @@ struct OctreeWriter{
 				if(this->children[i] == nullptr) continue;
 
 				this->children[i]->traverse(name + std::to_string(i), callback);
+			}
+
+		}
+
+		void traverse(std::function<void(HNode*)> callback){
+
+			callback(this);
+
+			for(int i = 0; i < 8; i++){
+				if(this->children[i] == nullptr) continue;
+
+				this->children[i]->traverse(callback);
 			}
 
 		}
@@ -178,11 +208,28 @@ struct OctreeWriter{
 		Box cube(cunode->min, cunode->max);
 		vec3 size = cube.size();
 
-		if(node->name == "r1"){
-			int a = 10;
+		{
+			int gridSize = 128;
+			float fGridSize = gridSize;
+
+			for(int i = 0; i < cunode->numVoxels; i++){
+				Point point = cunode->voxels[i];
+				float fx = 128.0 * (point.x - cunode->min.x) / size.x;
+				float fy = 128.0 * (point.y - cunode->min.y) / size.y;
+				float fz = 128.0 * (point.z - cunode->min.z) / size.z;
+
+				int cx = fx > 64.0f ? 1 : 0;
+				int cy = fy > 64.0f ? 1 : 0;
+				int cz = fz > 64.0f ? 1 : 0;
+
+				int childIndex = (cx << 2) | (cy << 1) | (cz << 0);
+
+				node->voxelsPerOctant[childIndex]++;
+			}
 		}
 
 		if(node->name == "r"){
+			// encode parent coordinates directly
 			auto buffer = make_shared<Buffer>(node->cunode->numVoxels * 3);
 
 			for(int i = 0; i < node->cunode->numVoxels; i++){
@@ -205,6 +252,10 @@ struct OctreeWriter{
 			// return buffer;
 		}else if(node->cunode->numVoxels > 0){
 
+			// encode child coordinates relative to parent voxels
+
+
+			// first, create childmasks in voxel grid
 			int gridSize = 64;
 			float fGridSize = gridSize;
 			vector<uint8_t> childmasks(gridSize * gridSize * gridSize, 0);
@@ -249,6 +300,7 @@ struct OctreeWriter{
 				childmasks[voxelIndex] = childmasks[voxelIndex] | (1 << childIndex);
 			}
 
+			// then iterate through all cells and check computed child masks
 			int numParentVoxels = 0;
 			int numChildVoxels = 0;
 			vector<uint8_t> childmasks_list;
@@ -286,6 +338,9 @@ struct OctreeWriter{
 							node->parent->childNumVoxels[nodeChildIndex]++;
 						}
 					}
+
+					// int nodeChildIndex = std::stoi(node->name.substr(node->name.size() - 1, 1));
+					// node->parent->voxelsPerOctant[nodeChildIndex]++;
 
 				}
 			}
@@ -495,6 +550,60 @@ struct OctreeWriter{
 		// Box box;
 		// box.min = {-8.0960000000000001, -4.7999999999999998, 1.6870000000000001};
 		// box.max = {7.4620000000000015, 10.758000000000003, 17.245000000000001};
+
+		// compute diff colors
+		// HNode* root = &hnodes["r"];
+		// root->traverse([&](HNode* node){
+
+		// 	node->diffColors.resize(node->cunode->numVoxels);
+			
+		// 	if(node->name == "r"){
+
+		// 		for(int i = 0; i < node->cunode->numVoxels; i++){
+		// 			Point voxel = node->cunode->voxels[i];
+		// 			RGBA* rgba = (RGBA*)&voxel.color;
+		// 			node->diffColors[i] = *rgba;
+		// 		}
+
+		// 	}else{
+
+		// 		auto toVoxelIndex = [](Point voxel, CuNode* node){
+
+		// 			int ix = clamp(128.0f * (voxel.x - node->min.x) / (node->max.x - node->min.x), 0.0f, 127.0f);
+		// 			int iy = clamp(128.0f * (voxel.y - node->min.y) / (node->max.y - node->min.y), 0.0f, 127.0f);
+		// 			int iz = clamp(128.0f * (voxel.z - node->min.z) / (node->max.z - node->min.z), 0.0f, 127.0f);
+					
+		// 			int voxelIndex = ix + iy * 128 + iz * 128 * 128;
+				
+		// 			return voxelIndex;
+		// 		};
+
+		// 		int i_parent = 0;
+		// 		auto parent = node->parent->cunode;
+		// 		for(int i_child = 0; i_child < node->cunode->numVoxels; i_child++){
+
+		// 			Point v_parent = node->parent->cunode->voxels[i_child];
+		// 			Point v_child = node->cunode->voxels[i_child];
+
+		// 			bool isParent = toVoxelIndex(v_parent, parent) == toVoxelIndex(v_child, parent);
+	
+		// 			if(isParent){
+		// 				// parentVoxels[i_child] = v_parent;
+
+
+		// 			}else{
+		// 				// repeat same loop iteration with next parent candidate
+		// 				i_parent++;
+		// 				i_child--;
+		// 			}
+
+		// 		}
+
+
+		// 	}
+
+		// });
+
 		
 
 		stringstream ssBatches;
@@ -519,6 +628,14 @@ struct OctreeWriter{
 
 			for(auto& [batchName, nodes] : batches){
 
+				for(auto node : nodes){
+					node->voxelBuffer = toVoxelBuffer(node);
+				}
+
+			}
+
+			for(auto& [batchName, nodes] : batches){
+
 				int numVoxels = 0;
 				int numPoints = 0;
 
@@ -526,7 +643,6 @@ struct OctreeWriter{
 
 				vector<shared_ptr<Buffer>> buffers;
 				uint64_t bufferSize = 0;
-
 
 				for(auto node : nodes){
 					numVoxels += node->cunode->numVoxels;
@@ -572,7 +688,9 @@ struct OctreeWriter{
 						
 					}
 
-					auto voxelBuffer = toVoxelBuffer(node);
+					auto voxelBuffer = node->voxelBuffer;
+					// auto voxelBuffer = toVoxelBuffer(node);
+
 					auto jpegBuffer = toJpegBuffer(node);
 					auto colBuffer = toColorBuffer(node);
 					auto colCompressedBuffer = compress(colBuffer);
@@ -583,7 +701,7 @@ struct OctreeWriter{
 						Point v_child = cunode->voxels[i_child];
 
 						uint8_t* rgba_parent = (uint8_t*)&v_parent.color;
-						uint8_t* rgba_child= (uint8_t*)&v_child.color;
+						uint8_t* rgba_child = (uint8_t*)&v_child.color;
 
 						auto encode = [](int diff) -> uint8_t {
 							int value = floor(log2f(abs(float(diff))));
@@ -597,10 +715,16 @@ struct OctreeWriter{
 						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[0] - rgba_child[0]), 3 * i_child + 0);
 						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[1] - rgba_child[1]), 3 * i_child + 1);
 						// colDiffBuffer->set<uint8_t>(uint8_t(rgba_parent[2] - rgba_child[2]), 3 * i_child + 2);
+						if(node->name == "r"){
+							colDiffBuffer->set<uint8_t>(rgba_child[0], 3 * i_child + 0);
+							colDiffBuffer->set<uint8_t>(rgba_child[1], 3 * i_child + 1);
+							colDiffBuffer->set<uint8_t>(rgba_child[2], 3 * i_child + 2);
+						}else{
+							colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[0]) - int(rgba_child[0])), 3 * i_child + 0);
+							colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[1]) - int(rgba_child[1])), 3 * i_child + 1);
+							colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[2]) - int(rgba_child[2])), 3 * i_child + 2);
+						}
 
-						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[0]) - int(rgba_child[0])), 3 * i_child + 0);
-						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[1]) - int(rgba_child[1])), 3 * i_child + 1);
-						colDiffBuffer->set<uint8_t>(encode(int(rgba_parent[2]) - int(rgba_child[2])), 3 * i_child + 2);
 					}
 					auto colDiffCompressedBuffer = compress(colDiffBuffer);
 
@@ -636,28 +760,55 @@ struct OctreeWriter{
 					uint64_t voxelBufferOffset             = bufferSize;
 					uint64_t jpegBufferOffset              = voxelBufferOffset         + voxelBuffer->positions->size;
 					uint64_t colBufferOffset               = jpegBufferOffset          + jpegBuffer->size;
-					uint64_t colCompressedBufferOffset     = colBufferOffset           + colBuffer->size;
-					uint64_t colDiffBufferOffset           = colCompressedBufferOffset + colCompressedBuffer->size;
-					uint64_t colDiffCompressedBufferOffset = colDiffBufferOffset       + colDiffBuffer->size;
+					// uint64_t colCompressedBufferOffset     = colBufferOffset           + colBuffer->size;
+					// uint64_t colDiffBufferOffset           = colCompressedBufferOffset + colCompressedBuffer->size;
+					// uint64_t colDiffCompressedBufferOffset = colDiffBufferOffset       + colDiffBuffer->size;
 
 					buffers.push_back(voxelBuffer->positions);
 					buffers.push_back(jpegBuffer);
 					buffers.push_back(colBuffer);
-					buffers.push_back(colCompressedBuffer);
-					buffers.push_back(colDiffBuffer);
-					buffers.push_back(colDiffCompressedBuffer);
+					// buffers.push_back(colCompressedBuffer);
+					// buffers.push_back(colDiffBuffer);
+					// buffers.push_back(colDiffCompressedBuffer);
 
 					bufferSize += voxelBuffer->positions->size;
 					bufferSize += jpegBuffer->size;
 					bufferSize += colBuffer->size;
-					bufferSize += colCompressedBuffer->size;
-					bufferSize += colDiffBuffer->size;
-					bufferSize += colDiffCompressedBuffer->size;
+					// bufferSize += colCompressedBuffer->size;
+					// bufferSize += colDiffBuffer->size;
+					// bufferSize += colDiffCompressedBuffer->size;
 
 					string strNumChildVoxels = "";
+					string strVoxelsPerOctant = "";
 					for(int childIndex = 0; childIndex < 8; childIndex++){
 						strNumChildVoxels += std::to_string(node->childNumVoxels[childIndex]) + ", ";
+						strVoxelsPerOctant += std::to_string(node->voxelsPerOctant[childIndex]) + ", ";
 					}
+
+				//	R"V0G0N(
+				//{{
+				//	name: "{}",
+				//	min : [{}, {}, {}], max: [{}, {}, {}],
+				//	numPoints: {}, numVoxels: {},
+				//	voxelBufferOffset: {},
+				//	jpegBufferOffset: {},
+				//	jpegBufferSize: {},
+				//	colBufferOffset: {},
+				//	colBufferSize: {},
+				//	colCompressedBufferOffset: {},
+				//	colCompressedBufferSize: {},
+				//	colDiffBufferOffset: {},
+				//	colDiffBufferSize: {},
+				//	colDiffCompressedBufferOffset: {},
+				//	colDiffCompressedBufferSize: {},
+				//	jpegBBP: {},
+				//	colBBP: {},
+				//	colCompressedBPP: {},
+				//	colDiffCompressedBPP: {},
+				//	numChildVoxels: [{}],
+				//	numVoxelsPerOctant: [{}],
+				//}},
+				//)V0G0N",
 
 					string strNode = std::format(
 				R"V0G0N(
@@ -670,17 +821,12 @@ struct OctreeWriter{
 					jpegBufferSize: {},
 					colBufferOffset: {},
 					colBufferSize: {},
-					colCompressedBufferOffset: {},
-					colCompressedBufferSize: {},
-					colDiffBufferOffset: {},
-					colDiffBufferSize: {},
-					colDiffCompressedBufferOffset: {},
-					colDiffCompressedBufferSize: {},
 					jpegBBP: {},
 					colBBP: {},
 					colCompressedBPP: {},
 					colDiffCompressedBPP: {},
 					numChildVoxels: [{}],
+					numVoxelsPerOctant: [{}],
 				}},
 				)V0G0N", 
 						node->name, 
@@ -690,14 +836,14 @@ struct OctreeWriter{
 						voxelBufferOffset, 
 						jpegBufferOffset, jpegBuffer->size,
 						colBufferOffset, colBuffer->size,
-						colCompressedBufferOffset, colCompressedBuffer->size,
-						colDiffBufferOffset, colDiffBuffer->size,
-						colDiffCompressedBufferOffset, colDiffCompressedBuffer->size,
+						// colCompressedBufferOffset, colCompressedBuffer->size,
+						// colDiffBufferOffset, colDiffBuffer->size,
+						// colDiffCompressedBufferOffset, colDiffCompressedBuffer->size,
 						std::format("{:.3}", 8.0 * float(jpegBuffer->size) / node->cunode->numVoxels),
 						std::format("{:.3}", 8.0 * float(colBuffer->size) / node->cunode->numVoxels),
 						std::format("{:.3}", 8.0 * float(colCompressedBuffer->size) / node->cunode->numVoxels),
 						std::format("{:.3}", 8.0 * float(colDiffCompressedBuffer->size) / node->cunode->numVoxels),
-						strNumChildVoxels
+						strNumChildVoxels, strVoxelsPerOctant
 					);
 
 					ssNodes << strNode << endl;
