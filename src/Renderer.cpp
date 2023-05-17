@@ -371,7 +371,7 @@ void Renderer::loop(function<void(void)> update, function<void(void)> render){
 		auto windowSize_infos = ImVec2(490, 240);
 		auto windowSize_perf = ImVec2(490, 340);
 		auto windowSize_datasets = ImVec2(490, 260);
-		auto windowSize_debug = ImVec2(490, 200);
+		auto windowSize_debug = ImVec2(490, 280);
 
 		auto windowSize_state = ImVec2(370, 320);
 		auto windowSize_settings = ImVec2(370, 370);
@@ -545,21 +545,27 @@ void Renderer::loop(function<void(void)> update, function<void(void)> render){
 
 			ImGui::Begin("Debug and Evaluation Stuff");
 
+			static int renderMode = 0;
+			ImGui::RadioButton("LOD", &renderMode, 0); ImGui::SameLine();
+			ImGui::RadioButton("Brute-Force", &renderMode, 1);
+			Runtime::renderMode = renderMode;
+
+			static bool showBoundingBox = false;
+			ImGui::Checkbox("show bounding box", &showBoundingBox);
+			Runtime::showBoundingBox = showBoundingBox;
+
 			if (ImGui::Button("Benchmark: First-Come-First-Serve")) {
 				Runtime::samplingStrategy = 0;
 				Runtime::requestLodGeneration = true;
 			}
-
 			if (ImGui::Button("Benchmark: Random")) {
 				Runtime::samplingStrategy = 1;
 				Runtime::requestLodGeneration = true;
 			}
-
 			if (ImGui::Button("Benchmark: Average-Singlecell")) {
 				Runtime::samplingStrategy = 2;
 				Runtime::requestLodGeneration = true;
 			}
-
 			if (ImGui::Button("Benchmark: Weighted-Neighborhood")) {
 				Runtime::samplingStrategy = 3;
 				Runtime::requestLodGeneration = true;

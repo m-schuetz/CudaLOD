@@ -255,7 +255,7 @@ void drawVoxel(Voxels* voxels, vec3 pos, float size, uint32_t color);
 // calls function <f> <size> times
 // calls are distributed over all available threads
 template<typename Function>
-void parallelIterator(int first, int size, Function&& f){
+void processRange(int first, int size, Function&& f){
 
 	uint32_t totalThreadCount = blockDim.x * gridDim.x;
 
@@ -275,7 +275,26 @@ void parallelIterator(int first, int size, Function&& f){
 	}
 }
 
-#define processRange parallelIterator
+template<typename Function>
+void processRange(int size, Function&& f){
+
+	uint32_t totalThreadCount = blockDim.x * gridDim.x;
+
+	// TODO: make sure there are no duplicate calls
+	int itemsPerThread = size / totalThreadCount + 1;
+
+	for(int i = 0; i < itemsPerThread; i++){
+		int block_offset  = itemsPerThread * blockIdx.x * blockDim.x;
+		int thread_offset = itemsPerThread * threadIdx.x;
+		int index = block_offset + thread_offset + i;
+
+		if(index >= size){
+			break;
+		}
+
+		f(index);
+	}
+}
 
 #define VERBOSE_PRINT(...) {                     \
 	if(cg::this_grid().thread_rank() == 0 && VERBOSE){ \

@@ -568,6 +568,8 @@ struct VoxelTreeGen{
 				int2 imageSize;
 				int numPoints;
 				float LOD;
+				int renderMode;
+				bool showBoundingBox;
 			};
 
 			auto fbo = renderer->views[0].framebuffer;
@@ -576,12 +578,14 @@ struct VoxelTreeGen{
 			rpArgs.imageSize = int2{ fbo->width, fbo->height };
 			rpArgs.numPoints = lasfile->points.size();
 			rpArgs.LOD = Runtime::LOD;
+			rpArgs.renderMode = Runtime::renderMode;
+			rpArgs.showBoundingBox = Runtime::showBoundingBox;
 
 			void* args[] = {
 				&rpArgs, &output_surface,
 				&ptr_render_buffer,
 				&nodes, &num_nodes, &sorted,
-				&ptr_points, &ptr_lines
+				&ptr_points, &ptr_lines, &ptr_input_points
 			};
 
 			int numGroups = 80;

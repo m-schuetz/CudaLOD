@@ -38,6 +38,8 @@ struct Runtime{
 	inline static int samplingStrategy = 0;
 	inline static bool requestLodGeneration = false;
 	inline static float LOD = 0.95f;
+	inline static int renderMode = 0;
+	inline static bool showBoundingBox = false;
 
 
 	Runtime(){

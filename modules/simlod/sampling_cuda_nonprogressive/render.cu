@@ -16,11 +16,13 @@
 
 namespace cg = cooperative_groups;
 
-constexpr int splatRadius = 1;
+constexpr int SPLAT_SIZE = 0;
 // constexpr float LOD_FACTOR = 0.08;
 constexpr float DEFAULT_DEPTH = 100000000000.0;
-
 constexpr bool SHOW_BOUNDING_BOXES = false;
+constexpr float minNodeSize = 64;
+constexpr float DEPTH_THRESHOLD = 1.006f;
+constexpr bool USE_BLENDING = true;
 
 // static constexpr uint32_t SPECTRAL[11] = {
 // 	0x9e0142,
@@ -250,6 +252,8 @@ struct RenderPassArgs{
 	int2 imageSize;
 	int numPoints;
 	float LOD;
+	int renderMode;
+	bool showBoundingBox;
 };
 
 void drawLines(Point* vertices, int numLines, uint32_t* rt_depth, uint32_t* rt_color, RenderPassArgs& args){
@@ -506,7 +510,7 @@ void drawBoundingBoxes(
 	RenderPassArgs& args
 ){
 	
-	if(SHOW_BOUNDING_BOXES)
+	// if(SHOW_BOUNDING_BOXES)
 	{ // draw lines
 
 		int linesPerBox = 12;
@@ -1161,7 +1165,7 @@ void renderHQS(
 				uint32_t oldDepthi = rt_depth[pixelID];
 				float oldDepth = *((float*)&oldDepthi);
 
-				if(depth < oldDepth * 1.01)
+				if(depth < oldDepth * DEPTH_THRESHOLD)
 				{
 					uint32_t R = (point.color >>  0) & 0xff;
 					uint32_t G = (point.color >>  8) & 0xff;
@@ -1244,7 +1248,18 @@ void renderHQS(
 				uint32_t oldDepthi = rt_depth[pixelID];
 				float oldDepth = *((float*)&oldDepthi);
 
-				if(depth < oldDepth * 1.01){
+				bool shouldAdd = false;
+
+				if(!USE_BLENDING){
+					shouldAdd = depth <= oldDepth;
+				}else{
+					shouldAdd = depth < oldDepth * DEPTH_THRESHOLD;
+				}
+
+				// if(depth <= oldDepth)
+				// if((!USE_BLENDING && depth < oldDepth) || (depth < oldDepth * DEPTH_THRESHOLD))
+				if(shouldAdd)
+				{
 					uint32_t R = (voxel.color >>  0) & 0xff;
 					uint32_t G = (voxel.color >>  8) & 0xff;
 					uint32_t B = (voxel.color >> 16) & 0xff;
@@ -1287,14 +1302,14 @@ void renderHQS(
 				+ (block.thread_rank() / tileSize) * width;
 			
 			float closestDepth = 1000000.0;
-			for(int dx = -splatRadius; dx <= splatRadius; dx++)
-			for(int dy = -splatRadius; dy <= splatRadius; dy++)
+			for(int dx = 0; dx <= SPLAT_SIZE; dx++)
+			for(int dy = 0; dy <= SPLAT_SIZE; dy++)
 			{
 
 				float fx = float(dx);
 				float fy = float(dy);
 				float ll = fx * fx + fy * fy;
-				float nl = sqrt(ll) / splatRadius;
+				float nl = sqrt(ll) / SPLAT_SIZE;
 
 				// if(nl >= 1.0) continue;
 				
@@ -1305,7 +1320,7 @@ void renderHQS(
 				uint32_t depthi = rt_depth[index];
 				float depth = *((float*)&depthi);
 
-				// depth = depth + 0.00000 * nl * splatRadius;
+				// depth = depth + 0.00000 * nl * SPLAT_SIZE;
 
 				closestDepth = min(closestDepth, depth);
 			}
@@ -1314,8 +1329,8 @@ void renderHQS(
 			uint64_t R = 0;
 			uint64_t G = 0;
 			uint64_t B = 0;
-			for(int dx = -splatRadius; dx <= splatRadius; dx++)
-			for(int dy = -splatRadius; dy <= splatRadius; dy++)
+			for(int dx = 0; dx <= SPLAT_SIZE; dx++)
+			for(int dy = 0; dy <= SPLAT_SIZE; dy++)
 			{
 				int index = pixelID + dx + width * dy;
 				index = max(index, 0);
@@ -1324,7 +1339,7 @@ void renderHQS(
 				float fx = float(dx);
 				float fy = float(dy);
 				float ll = fx * fx + fy * fy;
-				float nl = sqrt(ll) / splatRadius;
+				float nl = sqrt(ll) / SPLAT_SIZE;
 
 				// if(nl >= 1.0) continue;
 
@@ -1334,8 +1349,220 @@ void renderHQS(
 				uint32_t depthi = rt_depth[index];
 				float depth = *((float*)&depthi);
 
+				float threshold = USE_BLENDING ? DEPTH_THRESHOLD : 1.0f;
+				threshold = 1.0f;
+				W = 1;
+
+				// if(w > 0.0)
+				// if(depth <= closestDepth * DEPTH_THRESHOLD)
 				if(w > 0.0)
-				if(depth <= closestDepth * 1.01)
+				if(depth <= closestDepth * threshold)
+				{
+					A += rt_accum[4 * index + 3] * W;
+					R += rt_accum[4 * index + 0] * W;
+					G += rt_accum[4 * index + 1] * W;
+					B += rt_accum[4 * index + 2] * W;
+				}
+
+			}
+			
+			R = R / A;
+			G = G / A;
+			B = B / A;
+
+			uint64_t depthi = rt_depth[pixelID];
+			depthi = *(uint32_t*)(&closestDepth);
+			uint32_t color = R | (G << 8) | (B << 16);
+			// uint32_t color = 0x000000ff;
+
+			if(A == 0){
+				color = 0xffffffff;
+				color = 0xff332211;
+			}
+
+			rt_resolved_depth[pixelID] = depthi;
+			rt_resolved_color[pixelID] = color;
+
+			block.sync();
+		}
+	}
+}
+
+void renderHQS(
+	Allocator& allocator, 
+	RenderPassArgs& args,
+	int width, int height,
+	uint32_t* rt_resolved_depth,
+	uint32_t* rt_resolved_color,
+	Point* points, uint32_t numPoints
+){
+	auto grid = cg::this_grid();
+	auto block = cg::this_thread_block();
+
+	uint32_t* rt_depth = allocator.alloc<uint32_t*>( 4 * width * height);
+	uint32_t* rt_accum = allocator.alloc<uint32_t*>(16 * width * height);
+
+	processRange(0, width * height, [&](int pixelID){
+		float depth = 100000000000.0;
+		uint32_t depthi = *((uint32_t*)&depth);
+		rt_depth[pixelID] = depthi;
+		rt_accum[4 * pixelID + 0] = 0;
+		rt_accum[4 * pixelID + 1] = 0;
+		rt_accum[4 * pixelID + 2] = 0;
+		rt_accum[4 * pixelID + 3] = 0;
+	});
+
+	grid.sync();
+
+	// DEPTH
+	processRange(numPoints, [&](int pointIndex){
+		Point point = points[pointIndex];
+
+		float4 pos = matMul(args.transform, {point.x, point.y, point.z, 1.0f});
+		pos.x = pos.x / pos.w;
+		pos.y = pos.y / pos.w;
+
+		if(pos.x < -1.0 || pos.x > 1.0) return;
+		if(pos.y < -1.0 || pos.y > 1.0) return;
+		if(pos.w < 0.0) return;
+
+		float4 imgPos = {
+			(pos.x * 0.5f + 0.5f) * width, 
+			(pos.y * 0.5f + 0.5f) * height,
+			pos.z, pos.w
+		};
+
+		int X = clamp(imgPos.x, 0.0, float(width) - 1.0);
+		int Y = clamp(imgPos.y, 0.0, float(height) - 1.0);
+		int pixelID = X + width * Y;
+
+		float depth = pos.w;
+		uint32_t idepth = *((uint32_t*)&depth);
+
+		atomicMin(&rt_depth[pixelID], idepth);
+	});
+	
+	grid.sync();
+
+	// COLOR
+	processRange(numPoints, [&](int pointIndex){
+		Point point = points[pointIndex];
+		
+		float4 pos = matMul(args.transform, {point.x, point.y, point.z, 1.0f});
+		pos.x = pos.x / pos.w;
+		pos.y = pos.y / pos.w;
+
+		if(pos.x < -1.0 || pos.x > 1.0) return;
+		if(pos.y < -1.0 || pos.y > 1.0) return;
+		if(pos.w < 0.0) return;
+
+		float4 imgPos = {
+			(pos.x * 0.5f + 0.5f) * width, 
+			(pos.y * 0.5f + 0.5f) * height,
+			pos.z, pos.w
+		};
+
+		int X = clamp(imgPos.x, 0.0, float(width) - 1.0);
+		int Y = clamp(imgPos.y, 0.0, float(height) - 1.0);
+		int pixelID = X + width * Y;
+
+		float depth = pos.w;
+
+		uint32_t oldDepthi = rt_depth[pixelID];
+		float oldDepth = *((float*)&oldDepthi);
+
+		if(depth < oldDepth * DEPTH_THRESHOLD)
+		// if(depth < oldDepth + 2.1)
+		{
+			uint32_t R = (point.color >>  0) & 0xff;
+			uint32_t G = (point.color >>  8) & 0xff;
+			uint32_t B = (point.color >> 16) & 0xff;
+
+			atomicAdd(&rt_accum[4 * pixelID + 0], R);
+			atomicAdd(&rt_accum[4 * pixelID + 1], G);
+			atomicAdd(&rt_accum[4 * pixelID + 2], B);
+			atomicAdd(&rt_accum[4 * pixelID + 3], 1);
+
+			// if(old > 
+		}
+	});
+
+	grid.sync();
+
+	{ // testing tile-based resolve
+		uint32_t tileSize = 16;
+		uint32_t numTiles_x = width / tileSize;
+		uint32_t numTiles_y = height / tileSize;
+		uint32_t numTiles = numTiles_x * numTiles_y;
+		uint32_t tilesPerBlock = numTiles / grid.num_blocks();
+
+		for(int i = 0; i < tilesPerBlock; i++){
+
+			block.sync();
+
+			int tileID = i * grid.num_blocks() + block.group_index().x;
+
+			int tileX = tileID % numTiles_x;
+			int tileY = tileID / numTiles_x;
+			// int tileStart = tileSize * tileX + tileSize * tileSize * numTiles_x * tileY;
+			int tileStart = tileX * tileSize + tileY * width * tileSize;
+
+			int pixelID = tileStart 
+				+ block.thread_rank() % tileSize
+				+ (block.thread_rank() / tileSize) * width;
+			
+			float closestDepth = 1000000.0;
+			for(int dx = 0; dx <= SPLAT_SIZE; dx++)
+			for(int dy = 0; dy <= SPLAT_SIZE; dy++)
+			{
+
+				float fx = float(dx);
+				float fy = float(dy);
+				float ll = fx * fx + fy * fy;
+				float nl = sqrt(ll) / SPLAT_SIZE;
+
+				// if(nl >= 1.0) continue;
+				
+				int index = pixelID + dx + width * dy;
+				index = max(index, 0);
+				index = min(index, width * height);
+
+				uint32_t depthi = rt_depth[index];
+				float depth = *((float*)&depthi);
+
+				// depth = depth + 0.00000 * nl * SPLAT_SIZE;
+
+				closestDepth = min(closestDepth, depth);
+			}
+
+			uint64_t A = 0;
+			uint64_t R = 0;
+			uint64_t G = 0;
+			uint64_t B = 0;
+			for(int dx = 0; dx <= SPLAT_SIZE; dx++)
+			for(int dy = 0; dy <= SPLAT_SIZE; dy++)
+			{
+				int index = pixelID + dx + width * dy;
+				index = max(index, 0);
+				index = min(index, width * height);
+
+				float fx = float(dx);
+				float fy = float(dy);
+				float ll = fx * fx + fy * fy;
+				float nl = sqrt(ll) / SPLAT_SIZE;
+
+				// if(nl >= 1.0) continue;
+
+				float w = __expf(-nl * nl * 50.5f);
+				w = clamp(w, 0.001f, 1.0f);
+				int W = 1000 * w;
+				uint32_t depthi = rt_depth[index];
+				float depth = *((float*)&depthi);
+
+				W = 1;
+
+				if(w > 0.0)
+				if(depth <= closestDepth * DEPTH_THRESHOLD)
 				{
 					A += rt_accum[4 * index + 3] * W;
 					R += rt_accum[4 * index + 0] * W;
@@ -1378,19 +1605,14 @@ void kernel(
 	uint32_t* num_nodes,
 	void** sssorted,
 	void** _points,
-	void** _lines
+	void** _lines,
+	Point* _input_points
 ){
 
 	auto grid = cg::this_grid();
 	auto block = cg::this_thread_block();
 
-	// return;
-
-	// if(grid.thread_rank() == 0) printf("numNodes: %i \n", *num_nodes);
-	// return;
-
 	int numNodes = *num_nodes;
-	// Point* sorted = (Point*)*sssorted;
 	Node* nodes = (Node*)*nnnodes;
 	Lines* lines = (Lines*)*_lines;
 	Points* points = (Points*)*_points;
@@ -1425,39 +1647,42 @@ void kernel(
 	uint32_t offset_block = block.group_index().x * pointsPerBlock;
 
 	Node** visibleNodes = allocator.alloc<Node**>(sizeof(Node*) * numNodes);
-	// int MAX_VISIBLE_NODES = 10'000;
-
-	// constexpr uint32_t binSize = 10;
-	// uint32_t& maxVoxels = *allocator.alloc<uint32_t*>(4);
-	// uint32_t* size_histogram_voxels = allocator.alloc<uint32_t*>(4 * binSize);
-	// uint32_t* size_histogram_points = allocator.alloc<uint32_t*>(4 * binSize);
-	// if(isFirstThread()){
-	// 	maxVoxels = 0;
-	// 	memset(size_histogram_voxels, 0, 4 * binSize);
-	// 	memset(size_histogram_points, 0, 4 * binSize);
-	// }
 
 	grid.sync();
 
-	// VISIBILITY
+	auto min8 = [](float f0, float f1, float f2, float f3, float f4, float f5, float f6, float f7){
+
+		float m0 = min(f0, f1);
+		float m1 = min(f2, f3);
+		float m2 = min(f4, f5);
+		float m3 = min(f6, f7);
+
+		float n0 = min(m0, m1);
+		float n1 = min(m2, m3);
+
+		return min(n0, n1);
+	};
+
+	auto max8 = [](float f0, float f1, float f2, float f3, float f4, float f5, float f6, float f7){
+
+		float m0 = max(f0, f1);
+		float m1 = max(f2, f3);
+		float m2 = max(f4, f5);
+		float m3 = max(f6, f7);
+
+		float n0 = max(m0, m1);
+		float n1 = max(m2, m3);
+
+		return max(n0, n1);
+	};
+
+	float fwidth = args.imageSize.x;
+	float fheight = args.imageSize.y;
+
+	// COMPUTE LIST OF VISIBLE NODES
 	processRange(0, numNodes, [&](int nodeIndex){
 
 		Node* node = &nodes[nodeIndex];
-
-		// atomicMax(&maxVoxels, node->numVoxels);
-
-		// if(node->numPoints > 0){
-		// 	uint32_t binKey = float(node->numPoints) / (100'000.0 / binSize);
-		// 	binKey = min(binKey, binSize - 1);
-
-		// 	atomicAdd(&size_histogram_points[binKey], 1);
-		// }else if(node->numVoxels > 0){
-		// 	uint32_t binKey = float(node->numVoxels) / (100'000.0 / binSize);
-		// 	binKey = min(binKey, binSize - 1);
-
-		// 	atomicAdd(&size_histogram_voxels[binKey], 1);
-		// }
-
 
 		vec3 center = (node->max + node->min) / 2.0;
 		float4 pos = matMul(args.transform, {center.x, center.y, center.z, 1.0f});
@@ -1468,11 +1693,60 @@ void kernel(
 			distance = 0.1;
 		}
 
-		// 0.5, 5.0
+		float4 p000 = {node->min.x, node->min.y, node->min.z, 1.0f};
+		float4 p001 = {node->min.x, node->min.y, node->max.z, 1.0f};
+		float4 p010 = {node->min.x, node->max.y, node->min.z, 1.0f};
+		float4 p011 = {node->min.x, node->max.y, node->max.z, 1.0f};
+		float4 p100 = {node->max.x, node->min.y, node->min.z, 1.0f};
+		float4 p101 = {node->max.x, node->min.y, node->max.z, 1.0f};
+		float4 p110 = {node->max.x, node->max.y, node->min.z, 1.0f};
+		float4 p111 = {node->max.x, node->max.y, node->max.z, 1.0f};
 
-		float lod_factor = 1.0f - 0.97f * args.LOD;
+		float4 ndc000 = matMul(args.transform, p000);
+		float4 ndc001 = matMul(args.transform, p001);
+		float4 ndc010 = matMul(args.transform, p010);
+		float4 ndc011 = matMul(args.transform, p011);
+		float4 ndc100 = matMul(args.transform, p100);
+		float4 ndc101 = matMul(args.transform, p101);
+		float4 ndc110 = matMul(args.transform, p110);
+		float4 ndc111 = matMul(args.transform, p111);
 
-		if(node->cubeSize / distance < lod_factor){
+		float4 s000 = ((ndc000 / ndc000.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s001 = ((ndc001 / ndc001.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s010 = ((ndc010 / ndc010.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s011 = ((ndc011 / ndc011.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s100 = ((ndc100 / ndc100.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s101 = ((ndc101 / ndc101.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s110 = ((ndc110 / ndc110.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+		float4 s111 = ((ndc111 / ndc111.w) * 0.5f + 0.5f) * float4{fwidth, fheight, 1.0f, 1.0f};
+
+		float smin_x = min8(s000.x, s001.x, s010.x, s011.x, s100.x, s101.x, s110.x, s111.x);
+		float smin_y = min8(s000.y, s001.y, s010.y, s011.y, s100.y, s101.y, s110.y, s111.y);
+
+		float smax_x = max8(s000.x, s001.x, s010.x, s011.x, s100.x, s101.x, s110.x, s111.x);
+		float smax_y = max8(s000.y, s001.y, s010.y, s011.y, s100.y, s101.y, s110.y, s111.y);
+
+		float dx = smax_x - smin_x;
+		float dy = smax_y - smin_y;
+
+		// if(nodeIndex == 0){
+		// 	printf("%f, %f \n" , dx, dy);
+		// }
+
+		// float lod_factor = 1.0f - 0.97f * args.LOD;
+		// lod_factor = 2.0 * 0.062;
+		// lod_factor = 1.0;
+		// lod_factor = s000.w;
+		// PRINT("lod_factor: %f \n", lod_factor);
+
+		// if(node->cubeSize / distance < lod_factor){
+		// 	visible = false;
+		// }
+
+		// if(dx < 64 || dy < 64)
+		// if(dx < 128 || dy < 128)
+		if(dx < minNodeSize || dy < minNodeSize)
+		{
 			visible = false;
 		}
 
@@ -1483,81 +1757,18 @@ void kernel(
 		if(node->level == 0){
 			visible = true;
 		}
-
-		// visible = (node->dbg == 53);
 		
-		// if(node->numPoints != node->numAdded){
-		// 	printf("subgrid[%i].voxelIndex[%i]: numPoints != numAdded -> %i != %i \n", 
-		// 		node->dbg, node->voxelIndex, node->numPoints, node->numAdded);
+		// if(node->isLeaf())
+		// {
+		// 	vec3 pos = (node->min + node->max) * 0.5f;
+		// 	vec3 size = node->max - node->min;
+		// 	drawBoundingBox(lines, pos, size, 0x000000ff);
+
+		// 	if(node->numPoints != node->numAdded){
+		// 		printf("subgrid[%i].voxelIndex[%i]: numPoints != numAdded -> %i != %i \n", 
+		// 			node->dbg, node->voxelIndex, node->numPoints, node->numAdded);
+		// 	}
 		// }
-
-		
-		if(false)
-		if(node->dbg == 53)
-		// if(node->voxelIndex == 3 || node->voxelIndex == 7)
-		if(node->isLeaf())
-		// if(node->numPoints > 0)
-		// if(node->level == 5)
-		{
-
-			// if(node->numPoints > 0){
-			// 	printf("points: %i \n", node->numPoints);
-			// }else{
-			// 	printf("voxels: %i \n", node->numVoxels);
-			// }
-
-			vec3 pos = (node->min + node->max) * 0.5f;
-			vec3 size = node->max - node->min;
-			drawBoundingBox(lines, pos, size, 0x000000ff);
-
-			if(node->numPoints != node->numAdded){
-				printf("subgrid[%i].voxelIndex[%i]: numPoints != numAdded -> %i != %i \n", 
-					node->dbg, node->voxelIndex, node->numPoints, node->numAdded);
-			}
-
-			// for(int i = 0; i < node->numPoints; i++){
-			// 	Point point = node->points[i];
-
-			// 	bool insideX = node->min.x <= point.x && point.x <= node->max.x;
-			// 	bool insideY = node->min.y <= point.y && point.y <= node->max.y;
-			// 	bool insideZ = node->min.z <= point.z && point.z <= node->max.z;
-			// 	bool isInside = insideX && insideY && insideZ;
-
-			// 	if(!isInside){
-			// 		printf("point not inside: %i, %i, %i \n", node->dbg, node->voxelIndex, i);
-			// 		printf("ptr: %llu \n", &node->points[i]);
-			// 		// printf("point not inside: %i, %i \n", node->voxelIndex, i);
-			// 		// printf("point: [%f, %f, %f], min: [%f, %f, %f], max: [%f, %f, %f] \n",
-			// 		// 	point.x, point.y, point.z,
-			// 		// 	node->min.x, node->min.y, node->min.z,
-			// 		// 	node->max.x, node->max.y, node->max.z
-			// 		// );
-			// 	}
-				
-
-			// }
-
-		}
-
-		// visible = visible && node->numPoints > 0;
-		// visible = node->numPoints > 0;
-		// visible = (node->level == 0) || (node->dbg == 133833);
-
-		// if(node->dbg == 133833){
-		// 	// printf("%f, %f, %f \n", node->max.x, node->max.y, node->max.z);
-		// }
-
-		// vec3 targetMin = vec3{617.182495, 177.545639, 67.636436} - 0.01f;
-		// vec3 targetMax = vec3{625.637085, 186.000183, 76.090973} + 0.01f;
-
-		// visible = 
-		// 	node->min.x > targetMin.x && 
-		// 	node->min.y > targetMin.y && 
-		// 	node->min.z > targetMin.z && 
-		// 	node->max.x < targetMax.x && 
-		// 	node->max.y < targetMax.y && 
-		// 	node->max.z < targetMax.z;
-
 
 		int sumChildPoints = 0;
 		int sumChildVoxels = 0;
@@ -1569,10 +1780,6 @@ void kernel(
 			sumChildPoints += child->numPoints;
 			sumChildVoxels += child->numVoxels;
 		}
-		// visible = sumChildPoints > 0 && sumChildVoxels == 0;
-
-		// visible = false;
-		// visible = visible && node->level == 6;
 
 		node->visible = visible;
 
@@ -1587,48 +1794,25 @@ void kernel(
 
 	grid.sync();
 
-	if(false)
-	if(isFirstThread())
-	{ // DEBUG
-		auto root = &nodes[0];
-		
-		root->visible = true;
+	// renderBasic(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
+	// renderTest(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
+	// renderHQS(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
 
-		auto target = root->children[4]->children[0]->children[0]->children[2]->children[1]->children[5];
-		if(target){
-			target->visible = true;
-
-			uint32_t index = atomicAdd(&nodeCount, 1);
-			visibleNodes[index] = target;
-
-			// PRINT("target->numPoints: %i \n", target->numPoints);
-		}
-
-		auto target2 = root->children[4]->children[0]->children[0]->children[2]->children[1];
-		if(target2){
-			target2->visible = true;
-
-			uint32_t index = atomicAdd(&nodeCount, 1);
-			visibleNodes[index] = target2;
-
-			// PRINT("target->numVoxels: %i \n", target2->numVoxels);
-		}
-
-		// if(root->children[0]->children[7]){
-		// 	root->children[0]->children[7]->visible = true;
-		// }
-
+	if(args.renderMode == 0){
+		renderHQS(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
+	}else if(args.renderMode == 1){
+		renderHQS(allocator, args, width, height, 
+			rt_resolved_depth, rt_resolved_color,
+			_input_points, uint32_t(args.numPoints)
+		);
 	}
 
 	grid.sync();
 
-	// renderBasic(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
-	// renderTest(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
-	renderHQS(allocator, args, nodeCount, visibleNodes, width, height, rt_resolved_depth, rt_resolved_color);
+	if(args.showBoundingBox){
+		drawBoundingBoxes(allocator, nodes, numNodes, rt_resolved_depth, rt_resolved_color, args);
+	}
 
-	grid.sync();
-
-	drawBoundingBoxes(allocator, nodes, numNodes, rt_resolved_depth, rt_resolved_color, args);
 	grid.sync();
 	drawLines(lines, rt_resolved_depth, rt_resolved_color, args);
 	grid.sync();
@@ -1675,7 +1859,7 @@ void kernel(
 	// 	rt_edl[pixelID] = color;
 	// });
 
-	// if(false)
+	if(false)
 	{ // tile-based EDL
 		uint32_t tileSize = 16;
 		uint32_t numTiles_x = width / tileSize;
@@ -1889,7 +2073,7 @@ void kernel(
 	// }
 
 
-	if(false)
+	// if(false)
 	if(isFirstThread())
 	{
 		// printf("pointCount: %i, voxelCount: %i \n", pointCount, voxelCount);
@@ -1902,31 +2086,5 @@ void kernel(
 		printNumber(voxelCount, 10);
 		// printf("\n");
 	}
-
-	// if(false)
-	// if(isFirstThread())
-	// { // BINS
-
-	// 	printf("points: \n");
-	// 	for(int i = 0; i < binSize; i++){
-	// 		uint32_t count = size_histogram_points[i];
-			
-	// 		if(count > 0){
-	// 			printf("%i: %i \n", i, count);
-	// 		}
-	// 	}
-
-	// 	printf("voxels: \n");
-	// 	for(int i = 0; i < binSize; i++){
-	// 		uint32_t count = size_histogram_voxels[i];
-			
-	// 		if(count > 0){
-	// 			printf("%i: %i \n", i, count);
-	// 		}
-	// 	}
-	// }
-
-
-	
 
 }
