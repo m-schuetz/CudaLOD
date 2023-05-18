@@ -1,6 +1,6 @@
 // Some code in this file, particularly frustum, ray and intersection tests, 
 // is adapted from three.js. Three.js is licensed under the MIT license
-// This file this follows the three.js licensing
+// This file follows the three.js licensing
 // License: MIT https://github.com/mrdoob/three.js/blob/dev/LICENSE
 
 
@@ -17,13 +17,13 @@
 namespace cg = cooperative_groups;
 
 constexpr int SPLAT_SIZE = 0;
-// constexpr float LOD_FACTOR = 0.08;
 constexpr float DEFAULT_DEPTH = 100000000000.0;
 constexpr bool SHOW_BOUNDING_BOXES = false;
 constexpr float minNodeSize = 64;
 constexpr float DEPTH_THRESHOLD = 1.006f;
 constexpr bool USE_BLENDING = true;
 
+// https://colorbrewer2.org/#type=diverging&scheme=Spectral&n=11
 // static constexpr uint32_t SPECTRAL[11] = {
 // 	0x9e0142,
 // 	0xd53e4f,
@@ -61,10 +61,6 @@ struct Plane{
 };
 
 float t(int index, Mat4& transform){
-
-	// int a = index % 4;
-	// int b = index / 4;
-
 	float* cols = reinterpret_cast<float*>(&transform);
 
 	return cols[index];

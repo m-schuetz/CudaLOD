@@ -69,15 +69,9 @@ struct SimLOD{
 		this->path = path;
 		this->renderer = renderer;
 
-		// glCreateBuffers(1, &ssPoints);
-
 		this->lasfile = loadLas(path);
 
 		this->numPoints = lasfile->points.size();
-		// this->numPoints = min(this->numPoints, 250'000'000ull);
-		uint64_t bufferSize = 16ull * this->numPoints;
-		// glNamedBufferData(ssPoints, bufferSize, &lasfile->points[0], GL_DYNAMIC_DRAW);
-		
 	}
 
 	void update() {
@@ -91,13 +85,7 @@ struct SimLOD{
 			method = new simlod_gentree_cuda_nonprogressive::VoxelTreeGen(renderer, lasfile, numPoints);
 		}
 
-		// static simlod_gentree_cuda::VoxelTreeGen* method = nullptr;
-		// if(method == nullptr){
-		// 	method = new simlod_gentree_cuda::VoxelTreeGen(renderer, lasfile, ssPoints, numPoints);
-		// }
-
 		method->render();
-
 	}
 
 
